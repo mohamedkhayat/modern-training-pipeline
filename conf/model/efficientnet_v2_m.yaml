@@ -1,0 +1,4 @@
+name : efficientnet_v2_m
+out_size: 9
+dropout : 0.3
+startpoint : features.7.2
