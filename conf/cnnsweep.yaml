@@ -18,7 +18,7 @@ parameters:
     distribution: uniform
   model:
     values: 
-      - resnet50
+      - cnn
     distribution: categorical
   train_ratio:
     values:
