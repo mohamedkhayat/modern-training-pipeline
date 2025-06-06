@@ -1,0 +1,47 @@
+program: src\main.py
+method: bayes
+metric:
+  goal: maximize
+  name: best val accuracy
+parameters:
+  warmup_epochs:
+    max: 10
+    min: 5
+    distribution: int_uniform
+  lr:
+    max: 0.001
+    min: 0.00025
+    distribution: uniform
+  weight_decay:
+    max: 0.02
+    min: 0.005
+    distribution: uniform
+  model:
+    values: 
+      - resnet50
+    distribution: categorical
+  train_ratio:
+    values:
+      - 0.8
+    distribution: categorical
+  model.hidden_size:
+    max: 2048
+    min: 256
+    distribution: int_uniform
+  batch_size:
+    max: 64
+    min: 32
+    distribution: int_uniform
+  model.dropout:
+    max: 0.6
+    min: 0.15
+    distribution: uniform
+  epochs:
+    max: 100
+    min: 25
+    distribution: int_uniform
+command:
+  - ${env}
+  - python
+  - ${program}
+  - ${args_no_hyphens}
