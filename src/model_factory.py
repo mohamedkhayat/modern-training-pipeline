@@ -81,7 +81,7 @@ def freeze_backbone(backbone, startpoint):
 
 def get_model(cfg, device):
     if cfg.architecture not in supported_models:
-        raise ValueError(f"Unkown model : {cfg.architechture}")
+        raise ValueError(f"Unkown model : {cfg.architecture}")
 
     elif cfg.architecture == "cnn":
         backbone = CNN(cfg.model.hidden_size, cfg.model.out_size, cfg.model.dropout).to(
