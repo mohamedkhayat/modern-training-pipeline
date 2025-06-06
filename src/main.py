@@ -64,14 +64,14 @@ def main(cfg: DictConfig):
         print(f"Epoch : {epoch + 1} Learning rate : {scheduler.get_last_lr()[0]:.5f}")
         train_loss, train_f1 = train(model, device, train_dl, loss, cfg.model.out_size, optimizer, scaler)
         val_loss, val_f1 = evaluate(model, device, test_dl, loss, cfg.model.out_size)
-        best_val_acc = max(val_f1, best_val_f1)
+        best_val_f1 = max(val_f1, best_val_f1)
         scheduler.step()
         if cfg.logwandb:
             run.log(
                 {
                     "train f1": train_f1,
                     "train loss": train_loss,
-                    "val accuracy": val_f1,
+                    "val f1": val_f1,
                     "val loss": val_loss,
                     "Learning rate": float(f"{scheduler.get_last_lr()[0]:.6f}"),
                 }
