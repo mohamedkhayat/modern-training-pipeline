@@ -40,7 +40,7 @@ A **flexible and extensible PyTorch-based training pipeline** designed for image
 
 ```
 
-mohamedkhayat-modern-training-pipeline/
+modern-training-pipeline/
 ├── README.md
 ├── LICENSE
 ├── requirements.txt
