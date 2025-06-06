@@ -2,7 +2,7 @@ program: src\main.py
 method: bayes
 metric:
   goal: maximize
-  name: best val accuracy
+  name: best val f1
 parameters:
   warmup_epochs:
     max: 10
