@@ -95,7 +95,7 @@ def train(
         optimizer.zero_grad()
         x, y = x.to(device), y.to(device)
 
-        with autocast(device_type=device.type, dtype=torch.float16):
+        with autocast(device_type=device, dtype=torch.float16):
             out = model(x)
             batch_loss = criterion(out, y)
 
@@ -140,7 +140,7 @@ def evaluate(
 
     for x, y in test_dl:
         x, y = x.to(device), y.to(device)
-        with autocast(device_type=device.type, dtype=torch.float16):
+        with autocast(device_type=device, dtype=torch.float16):
             out = model(x)
             batch_loss = criterion(out, y).item()
 
