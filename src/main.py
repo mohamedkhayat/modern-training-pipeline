@@ -12,7 +12,7 @@ from omegaconf import DictConfig
 from model_factory import get_model
 
 
-@hydra.main(version_base=None, config_path="..\conf", config_name="config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
     if cfg.logwandb:
         run = initwandb(cfg)
