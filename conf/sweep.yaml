@@ -1,4 +1,4 @@
-program: src\main.py
+program: src/main.py
 method: bayes
 metric:
   goal: maximize
