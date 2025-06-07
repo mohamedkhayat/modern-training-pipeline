@@ -28,9 +28,6 @@ def main(cfg: DictConfig):
     
     train_ds, test_ds, mean, std = make_dataset(root_dir, cfg.train_ratio, generator, cfg.architecture in ["cnn_fc", "cnn_avg"])
     
-    print(mean)
-    print(std)
-
     model, transforms = get_model(cfg, device, mean, std)
     
     train_dl, test_dl = make_data_loaders(
