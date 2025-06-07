@@ -18,10 +18,10 @@ parameters:
     distribution: uniform
   model:
     values: 
-      - cnn_fc
+      - cnn_avg
     distribution: categorical
   model.last_filter_size:
-    max: 156
+    max: 768
     min: 96
     distribution: int_uniform
   train_ratio:
@@ -32,6 +32,10 @@ parameters:
     max: 64
     min: 32
     distribution: int_uniform
+  model.dropout:
+    values: 
+      - 0
+    distribution: categorical  
   epochs:
     max: 100
     min: 25

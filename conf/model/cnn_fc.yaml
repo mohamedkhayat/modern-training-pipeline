@@ -1,0 +1,4 @@
+name : cnn_fc
+out_size: 9
+dropout: 0.3
+last_filter_size : 128

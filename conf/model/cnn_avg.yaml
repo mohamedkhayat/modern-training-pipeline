@@ -1,0 +1,3 @@
+name : cnn_avg
+out_size: 9
+last_filter_size : 128

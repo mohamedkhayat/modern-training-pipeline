@@ -1,4 +1,0 @@
-name : cnn
-hidden_size: 512
-out_size: 9
-dropout: 0.3
