@@ -3,6 +3,7 @@ from .convBlock import ConvBlock
 import torch.nn.functional as F
 import math
 
+
 class CNN_FC(nn.Module):
     def __init__(self, hidden_size=256, out_size=9, p=0.3, last_filter_size=128):
         super(CNN_FC, self).__init__()
@@ -71,19 +72,19 @@ class CNN_FC(nn.Module):
         self.batchnorm2 = nn.BatchNorm1d(hidden_size // 2)
 
         self.fc3 = nn.Linear(hidden_size // 2, out_size)
-        
+
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Conv2d):
-            nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity='relu')
+            nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
         elif isinstance(m, nn.BatchNorm1d) or isinstance(m, nn.BatchNorm2d):
             nn.init.constant_(m.weight, 1)
             nn.init.constant_(m.bias, 0)
-            
+
         elif isinstance(m, nn.Linear):
             nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             if m.bias is not None:

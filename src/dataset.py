@@ -3,6 +3,8 @@ import cv2
 import torch
 from PIL import Image
 import torchvision.transforms.v2 as v2
+
+
 class FishDataset(Dataset):
     """
     A dataset class for loading fish images and their labels.
@@ -35,14 +37,14 @@ class FishDataset(Dataset):
             img = augmented["image"]
 
         return img, label
-    
+
     def compute_mean_std(self):
         # from dinesh2911 https://discuss.pytorch.org/t/computing-the-mean-and-std-of-dataset/34949/32
         print("... calculating dataset mean and std ...")
         # Initialize variables to store cumulative sum of pixel values
         mean = torch.zeros(3)  # Assuming RGB images
         var = torch.zeros(3)
-        
+
         # Define transformation to convert image to tensor
         to_tensor = v2.Compose([v2.ToImage(), v2.ToDtype(torch.float32, scale=True)])
 
@@ -54,17 +56,17 @@ class FishDataset(Dataset):
             mean += torch.mean(image_tensor, dim=(1, 2))
 
         mean /= len(self.samples)
-        
+
         # step II: Std-dev
         # first we need mean from step I
-        
+
         for image_path, _ in self.samples:
             # Open image and convert to tensor
             image = Image.open(image_path).convert("RGB")
             image_tensor = to_tensor(image)
-            var += torch.mean((image_tensor - mean.unsqueeze(1).unsqueeze(2))**2, dim=(1, 2))
+            var += torch.mean(
+                (image_tensor - mean.unsqueeze(1).unsqueeze(2)) ** 2, dim=(1, 2)
+            )
 
         print("done")
-        return mean, torch.sqrt(var / len(self.samples)) 
-        
-    
+        return mean, torch.sqrt(var / len(self.samples))

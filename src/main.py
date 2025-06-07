@@ -2,7 +2,15 @@ import torch
 import torch.nn as nn
 import pathlib
 from early_stop import EarlyStopping
-from utils.generalutils import make_data_loaders, train, evaluate, initwandb, get_run_name,set_seed, make_dataset
+from utils.generalutils import (
+    make_data_loaders,
+    train,
+    evaluate,
+    initwandb,
+    get_run_name,
+    set_seed,
+    make_dataset,
+)
 import torch.optim as optim
 from torch.amp import GradScaler
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, SequentialLR, LinearLR
@@ -25,11 +33,13 @@ def main(cfg: DictConfig):
     generator = set_seed(42)
 
     root_dir = pathlib.Path(rf"{cfg.root_dir}")
-    
-    train_ds, test_ds, mean, std = make_dataset(root_dir, cfg.train_ratio, generator, cfg.architecture in ["cnn_fc", "cnn_avg"])
-    
+
+    train_ds, test_ds, mean, std = make_dataset(
+        root_dir, cfg.train_ratio, generator, cfg.architecture in ["cnn_fc", "cnn_avg"]
+    )
+
     model, transforms = get_model(cfg, device, mean, std)
-    
+
     train_dl, test_dl = make_data_loaders(
         train_ds, test_ds, transforms, cfg.batch_size, generator
     )

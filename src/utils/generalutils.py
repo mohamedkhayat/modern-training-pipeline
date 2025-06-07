@@ -12,9 +12,10 @@ from omegaconf import OmegaConf
 from torchmetrics.classification import F1Score
 import random
 import numpy as np
-import functools 
+import functools
 from pathlib import Path
 import os
+
 
 def get_data_samples(root_dir):
     root_dir = Path(root_dir)
@@ -27,31 +28,32 @@ def get_data_samples(root_dir):
         for img in os.listdir(class_path):
             img_path = os.path.join(class_path, img)
             samples.append((str(img_path), cls_idx))
-            
+
     return samples, classes, class_to_idx
+
 
 def set_seed(SEED):
     torch.manual_seed(SEED)
     random.seed(SEED)
     np.random.seed(SEED)
     generator = torch.Generator().manual_seed(SEED)
-    
+
     return generator
+
 
 def make_dataset(
     root_dir: str,
     train_ratio: float,
     generator: torch.Generator,
-    get_stats: bool = False
-
+    get_stats: bool = False,
 ):
     print("... making dataset ...")
     data_samples, classes, class_to_idx = get_data_samples(root_dir)
-    
+
     dataset_size = len(data_samples)
     train_size = int(train_ratio * dataset_size)
     test_size = dataset_size - train_size
-    
+
     train_set, test_set = random_split(
         data_samples, [train_size, test_size], generator=generator
     )
@@ -59,13 +61,14 @@ def make_dataset(
     train_ds = FishDataset(train_set, classes, class_to_idx)
     test_ds = FishDataset(test_set, classes, class_to_idx)
 
-    mean,std = None, None
-    
+    mean, std = None, None
+
     if get_stats:
         mean, std = train_ds.compute_mean_std()
 
     print("done")
     return train_ds, test_ds, mean, std
+
 
 def seed_worker(worker_id, base_seed):
     worker_seed = base_seed + worker_id
@@ -73,13 +76,9 @@ def seed_worker(worker_id, base_seed):
     random.seed(worker_seed)
     torch.manual_seed(worker_seed)
 
-        
+
 def make_data_loaders(
-    train_ds,
-    test_ds,
-    transforms,
-    batch_size: int,
-    generator : torch.Generator
+    train_ds, test_ds, transforms, batch_size: int, generator: torch.Generator
 ):
     """Creates training and testing data loaders from a dataset.
 
@@ -91,14 +90,14 @@ def make_data_loaders(
         tuple[DataLoader, DataLoader]: A tuple containing the training and testing data loaders.
     """
     print("... making dataloaders ...")
-    
+
     base_seed = generator.initial_seed()
-    
+
     train_ds.transforms = transforms["train"]
     test_ds.transforms = transforms["test"]
-    
+
     worker_init = functools.partial(seed_worker, base_seed=base_seed)
-    
+
     train_dl = DataLoader(
         train_ds,
         batch_size=batch_size,
@@ -108,7 +107,7 @@ def make_data_loaders(
         persistent_workers=True,
         drop_last=True,
         worker_init_fn=worker_init,
-        generator=generator
+        generator=generator,
     )
 
     test_dl = DataLoader(
@@ -120,7 +119,7 @@ def make_data_loaders(
         persistent_workers=True,
         drop_last=True,
         worker_init_fn=worker_init,
-        generator=generator
+        generator=generator,
     )
 
     print("done")
@@ -157,9 +156,9 @@ def train(
     for batch_idx, (x, y) in enumerate(train_dl):
         optimizer.zero_grad()
         x, y = x.to(device), y.to(device)
-        
-        device_str = str(device).split(':')[0]
-        
+
+        device_str = str(device).split(":")[0]
+
         with autocast(device_type=device_str, dtype=torch.float16):
             out = model(x)
             batch_loss = criterion(out, y)
@@ -208,7 +207,7 @@ def evaluate(
     for x, y in test_dl:
         x, y = x.to(device), y.to(device)
 
-        device_str = str(device).split(':')[0]
+        device_str = str(device).split(":")[0]
 
         with autocast(device_type=device_str, dtype=torch.float16):
             out = model(x)

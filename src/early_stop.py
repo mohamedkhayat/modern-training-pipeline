@@ -1,8 +1,8 @@
 import torch
 import pathlib
 
-class EarlyStopping:
 
+class EarlyStopping:
     def __init__(self, patience, delta, path, name):
         self.patience = patience
         self.delta = delta
@@ -14,9 +14,8 @@ class EarlyStopping:
         self.best_metric = None
         self.counter = 0
         self.earlystop = False
-        
-        self.saved_checkpoints = []  
 
+        self.saved_checkpoints = []
 
     def __call__(self, val_metric, model):
         if self.best_metric is None:
@@ -28,7 +27,7 @@ class EarlyStopping:
             self.best_metric = val_metric
             filename = f"{self.name}_{val_metric:.4f}.pth"
             full_path = self.path / filename
-            torch.save(model.state_dict(),full_path)
+            torch.save(model.state_dict(), full_path)
             self.saved_checkpoints.append((val_metric, full_path))
 
             self.counter = 0
@@ -40,7 +39,7 @@ class EarlyStopping:
             self.cleanup_checkpoints()
 
         return self.earlystop
-    
+
     def cleanup_checkpoints(self):
         print("cleaning up old checkpoints...")
         best_val, best_path = max(self.saved_checkpoints, key=lambda x: x[0])

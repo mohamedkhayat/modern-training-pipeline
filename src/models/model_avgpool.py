@@ -1,8 +1,9 @@
 import torch.nn as nn
 from .convBlock import ConvBlock
 
+
 class CNN_AVG_POOL(nn.Module):
-    def __init__(self,out_size=9, last_filter_size=128):
+    def __init__(self, out_size=9, last_filter_size=128):
         super(CNN_AVG_POOL, self).__init__()
 
         self.blocks = nn.ModuleList(
@@ -55,19 +56,19 @@ class CNN_AVG_POOL(nn.Module):
         self.convblocks = nn.Sequential(*self.blocks)
 
         self.gavgpool = nn.AdaptiveAvgPool2d(1)
-        self.fc1 = nn.Linear(last_filter_size,out_size)
+        self.fc1 = nn.Linear(last_filter_size, out_size)
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
         if isinstance(m, nn.Conv2d):
-            nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity='relu')
+            nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
         elif isinstance(m, nn.BatchNorm1d) or isinstance(m, nn.BatchNorm2d):
             nn.init.constant_(m.weight, 1)
             nn.init.constant_(m.bias, 0)
-            
+
         elif isinstance(m, nn.Linear):
             nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
             if m.bias is not None:

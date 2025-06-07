@@ -9,10 +9,19 @@ from torchvision.models import (
 )
 from models.model_avgpool import CNN_AVG_POOL
 from models.model_fc import CNN_FC
+import os
+
+os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 import albumentations as A
 import cv2
 
-supported_models = ["cnn_avg", "cnn_fc", "resnet50", "efficientnet_v2_m", "efficientnet_v2_s"]
+supported_models = [
+    "cnn_avg",
+    "cnn_fc",
+    "resnet50",
+    "efficientnet_v2_m",
+    "efficientnet_v2_s",
+]
 
 
 def get_transforms(weights, mean, std):
@@ -27,8 +36,8 @@ def get_transforms(weights, mean, std):
     else:
         crop_sz = 224
         resize_sz = 256
-        mean = mean 
-        std = std 
+        mean = mean
+        std = std
         interp = cv2.INTER_LINEAR
 
     transforms = {
@@ -90,11 +99,14 @@ def get_model(cfg, device, mean, std):
         )
         transforms = get_transforms(None, mean, std)
         return backbone, transforms
-    
+
     elif cfg.architecture == "cnn_fc":
-        backbone = CNN_FC(cfg.model.hidden_size, cfg.model.out_size, cfg.model.dropout, cfg.model.last_filter_size).to(
-            device
-        )
+        backbone = CNN_FC(
+            cfg.model.hidden_size,
+            cfg.model.out_size,
+            cfg.model.dropout,
+            cfg.model.last_filter_size,
+        ).to(device)
         transforms = get_transforms(None, mean, std)
         return backbone, transforms
 

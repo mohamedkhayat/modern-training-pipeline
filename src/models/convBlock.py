@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class ConvBlock(nn.Module):
     def __init__(self, in_out_shapes, kernels, strides, paddings):
         super(ConvBlock, self).__init__()
@@ -21,7 +22,7 @@ class ConvBlock(nn.Module):
         self.batchnorm2 = nn.BatchNorm2d(in_out_shapes[1])
         if self.identity is None:
             self.maxpool = nn.MaxPool2d(2, 2)
-        
+
     def forward(self, x):
         out_conv1 = self.batchnorm1(self.conv1(x))
         out_conv1 = F.relu(out_conv1)
