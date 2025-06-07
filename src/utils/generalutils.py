@@ -12,20 +12,16 @@ from omegaconf import OmegaConf
 from torchmetrics.classification import F1Score
 import random
 import numpy as np
-
+import functools 
 
 def set_seed(SEED):
     torch.manual_seed(SEED)
     random.seed(SEED)
     np.random.seed(SEED)
-    generator = torch.Generator().manual_seed(42)
+    generator = torch.Generator().manual_seed(SEED)
     
     return generator
 
-def seed_worker(SEED):
-    np.random.seed(SEED)
-    random.seed(SEED)
- 
 def make_dataset(
     root_dir: str,
     train_ratio: float,
@@ -51,6 +47,25 @@ def make_dataset(
     print("done")
     return train_ds, test_ds, mean, std
 
+def _worker_init_fn(worker_id, base_seed, dataset_subset, transform_to_set):
+    """
+    Generic worker_init_fn.
+    - Seeds the worker.
+    - Sets the appropriate transform on the underlying dataset of the subset.
+    """
+    worker_seed = base_seed + worker_id
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+    # The dataset_subset is a torch.utils.data.Subset
+    # Its .dataset attribute points to the original FishDataset instance
+    if hasattr(dataset_subset, 'dataset') and hasattr(dataset_subset.dataset, 'transforms'):
+        dataset_subset.dataset.transforms = transform_to_set
+    else:
+        # This case should ideally not happen if dataset_subset is a Subset of FishDataset
+        print(f"Warning: Worker {worker_id} could not set transforms. "
+              f"dataset_subset type: {type(dataset_subset)}, "
+              f"has 'dataset': {hasattr(dataset_subset, 'dataset')}")
+        
 def make_data_loaders(
     train_ds,
     test_ds,
@@ -67,10 +82,25 @@ def make_data_loaders(
     Returns:
         tuple[DataLoader, DataLoader]: A tuple containing the training and testing data loaders.
     """
-    
     print("... making dataloaders ...")
+    
+    base_seed = generator.initial_seed()
+
     train_ds.dataset.transforms = transforms["train"]
     test_ds.dataset.transforms = transforms["test"]
+    train_init_fn = functools.partial(
+        _worker_init_fn,
+        base_seed=base_seed,
+        dataset_subset=train_ds,
+        transform_to_set=transforms["train"]
+    )
+
+    test_init_fn = functools.partial(
+        _worker_init_fn,
+        base_seed=base_seed, # Use the same base_seed, worker_id will make it unique
+        dataset_subset=test_ds,
+        transform_to_set=transforms["test"]
+    )
     
     train_dl = DataLoader(
         train_ds,
@@ -80,7 +110,7 @@ def make_data_loaders(
         pin_memory=True,
         persistent_workers=True,
         drop_last=True,
-        worker_init_fn=seed_worker,
+        worker_init_fn=train_init_fn,
         generator=generator
     )
 
@@ -91,7 +121,7 @@ def make_data_loaders(
         pin_memory=True,
         persistent_workers=True,
         drop_last=True,
-        worker_init_fn=seed_worker,
+        worker_init_fn=test_init_fn,
         generator=generator
     )
 
@@ -129,8 +159,10 @@ def train(
     for batch_idx, (x, y) in enumerate(train_dl):
         optimizer.zero_grad()
         x, y = x.to(device), y.to(device)
-
-        with autocast(device_type=device, dtype=torch.float16):
+        
+        device_str = str(device).split(':')[0]
+        
+        with autocast(device_type=device_str, dtype=torch.float16):
             out = model(x)
             batch_loss = criterion(out, y)
 
@@ -177,7 +209,10 @@ def evaluate(
 
     for x, y in test_dl:
         x, y = x.to(device), y.to(device)
-        with autocast(device_type=device, dtype=torch.float16):
+
+        device_str = str(device).split(':')[0]
+
+        with autocast(device_type=device_str, dtype=torch.float16):
             out = model(x)
             batch_loss = criterion(out, y).item()
 
