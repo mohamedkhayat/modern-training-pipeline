@@ -2,10 +2,9 @@ import torch
 import torch.nn as nn
 import pathlib
 from early_stop import EarlyStopping
-from utils import make_data_loaders, train, evaluate, initwandb, get_run_name
+from utils.generalutils import make_data_loaders, train, evaluate, initwandb, get_run_name,set_seed, make_dataset
 import torch.optim as optim
 from torch.amp import GradScaler
-import albumentations as A
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, SequentialLR, LinearLR
 import hydra
 from omegaconf import DictConfig
@@ -23,17 +22,23 @@ def main(cfg: DictConfig):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"using : {device}")
 
-    generator = torch.Generator().manual_seed(42)
+    generator = set_seed(42)
 
     root_dir = pathlib.Path(rf"{cfg.root_dir}")
+    
+    train_ds, test_ds, mean, std = make_dataset(root_dir, cfg.train_ratio, generator, cfg.architecture in ["cnn_fc", "cnn_avg"])
+    
+    print(mean)
+    print(std)
 
-    model, transforms = get_model(cfg, device)
-
+    model, transforms = get_model(cfg, device, mean, std)
+    
     train_dl, test_dl = make_data_loaders(
-        root_dir, transforms, cfg.train_ratio, cfg.batch_size, generator
+        train_ds, test_ds, transforms, cfg.batch_size, generator
     )
 
-    # TODO: either switch dataset, or switch task
+    # TODO: switch to image segmentation
+    # TODO: add distillation
 
     optimizer = optim.AdamW(
         filter(lambda p: p.requires_grad, model.parameters()),
@@ -62,7 +67,9 @@ def main(cfg: DictConfig):
     best_val_f1 = 0.0
     for epoch in range(cfg.epochs):
         print(f"Epoch : {epoch + 1} Learning rate : {scheduler.get_last_lr()[0]:.5f}")
-        train_loss, train_f1 = train(model, device, train_dl, loss, cfg.model.out_size, optimizer, scaler)
+        train_loss, train_f1 = train(
+            model, device, train_dl, loss, cfg.model.out_size, optimizer, scaler
+        )
         val_loss, val_f1 = evaluate(model, device, test_dl, loss, cfg.model.out_size)
         best_val_f1 = max(val_f1, best_val_f1)
         scheduler.step()

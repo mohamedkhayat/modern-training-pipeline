@@ -7,14 +7,15 @@ from torchvision.models import (
     efficientnet_v2_s,
     EfficientNet_V2_S_Weights,
 )
-from model import CNN
+from models.model_avgpool import CNN_AVG_POOL
+from models.model_fc import CNN_FC
 import albumentations as A
 import cv2
 
-supported_models = ["cnn", "resnet50", "efficientnet_v2_m", "efficientnet_v2_s"]
+supported_models = ["cnn_avg", "cnn_fc", "resnet50", "efficientnet_v2_m", "efficientnet_v2_s"]
 
 
-def get_transforms(weights):
+def get_transforms(weights, mean, std):
     if weights:
         tv_preset = weights.transforms()
         crop_sz = tv_preset.crop_size[0]
@@ -26,8 +27,8 @@ def get_transforms(weights):
     else:
         crop_sz = 224
         resize_sz = 256
-        mean = [0.485, 0.456, 0.406]
-        std = [0.229, 0.224, 0.225]
+        mean = mean 
+        std = std 
         interp = cv2.INTER_LINEAR
 
     transforms = {
@@ -48,7 +49,7 @@ def get_transforms(weights):
                 A.GaussianBlur(
                     sigma_limit=(0.2, 0.5),
                     blur_limit=0,
-                    p=1.0,
+                    p=0.8,
                 ),
                 A.Normalize(mean=mean, std=std),
                 A.ToTensorV2(),
@@ -79,15 +80,22 @@ def freeze_backbone(backbone, startpoint):
     return backbone
 
 
-def get_model(cfg, device):
+def get_model(cfg, device, mean, std):
     if cfg.architecture not in supported_models:
         raise ValueError(f"Unkown model : {cfg.architecture}")
 
-    elif cfg.architecture == "cnn":
-        backbone = CNN(cfg.model.hidden_size, cfg.model.out_size, cfg.model.dropout).to(
+    elif cfg.architecture == "cnn_avg":
+        backbone = CNN_AVG_POOL(cfg.model.out_size, cfg.model.last_filter_size).to(
             device
         )
-        transforms = get_transforms(None)
+        transforms = get_transforms(None, mean, std)
+        return backbone, transforms
+    
+    elif cfg.architecture == "cnn_fc":
+        backbone = CNN_FC(cfg.model.hidden_size, cfg.model.out_size, cfg.model.dropout, cfg.model.last_filter_size).to(
+            device
+        )
+        transforms = get_transforms(None, mean, std)
         return backbone, transforms
 
     elif cfg.architecture == "resnet50":

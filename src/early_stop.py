@@ -1,20 +1,22 @@
 import torch
 import pathlib
 
-
 class EarlyStopping:
+
     def __init__(self, patience, delta, path, name):
         self.patience = patience
         self.delta = delta
 
-        path = pathlib.Path(path)
-        path.mkdir(parents=True, exist_ok=True)
+        self.path = pathlib.Path(path)
+        self.path.mkdir(parents=True, exist_ok=True)
         self.name = name
-        self.full_path = path / f"{name}_best.pth"
 
         self.best_metric = None
         self.counter = 0
         self.earlystop = False
+        
+        self.saved_checkpoints = []  
+
 
     def __call__(self, val_metric, model):
         if self.best_metric is None:
@@ -24,12 +26,31 @@ class EarlyStopping:
             self.counter += 1
         else:
             self.best_metric = val_metric
-            torch.save(model.state_dict(), self.full_path)
+            filename = f"{self.name}_{val_metric:.4f}.pth"
+            full_path = self.path / filename
+            torch.save(model.state_dict(),full_path)
+            self.saved_checkpoints.append((val_metric, full_path))
+
             self.counter = 0
             print("saved model weights")
 
         if self.counter >= self.patience:
             print("early stop triggered")
             self.earlystop = True
+            self.cleanup_checkpoints()
 
         return self.earlystop
+    
+    def cleanup_checkpoints(self):
+        print("cleaning up old checkpoints...")
+        best_val, best_path = max(self.saved_checkpoints, key=lambda x: x[0])
+
+        for val, path in self.saved_checkpoints:
+            if path != best_path and path.exists():
+                try:
+                    path.unlink()
+                    print(f"deleted {path.name}")
+                except Exception as e:
+                    print(f"could not delete {path.name}: {e}")
+
+        print(f"kept best model: {best_path.name}")
