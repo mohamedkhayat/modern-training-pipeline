@@ -72,7 +72,6 @@ class CNN_FC(nn.Module):
 
         self.fc3 = nn.Linear(hidden_size // 2, out_size)
         
-        self.fc1 = nn.Linear(last_filter_size,out_size)
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
@@ -93,7 +92,6 @@ class CNN_FC(nn.Module):
     def forward(self, x):
         out_convblock = self.convblocks(x)
         out_flatten = self.flatten(out_convblock)
-        out_fc1 = self.batchnorm1(self.fc1(out_flatten))
         out_fc1 = self.batchnorm1(self.fc1(out_flatten))
         out_bn1 = self.dropout(F.relu(out_fc1))
         out_fc2 = self.batchnorm2(self.fc2(out_bn1))
