@@ -13,6 +13,22 @@ from torchmetrics.classification import F1Score
 import random
 import numpy as np
 import functools 
+from pathlib import Path
+import os
+
+def get_data_samples(root_dir):
+    root_dir = Path(root_dir)
+    classes = sorted([d.name for d in root_dir.iterdir() if d.is_dir()])
+    class_to_idx = {cls_name: idx for idx, cls_name in enumerate(classes)}
+    samples = []
+    for cls in classes:
+        cls_idx = class_to_idx[cls]
+        class_path = os.path.join(root_dir, cls)
+        for img in os.listdir(class_path):
+            img_path = os.path.join(class_path, img)
+            samples.append((str(img_path), cls_idx))
+            
+    return samples, classes, class_to_idx
 
 def set_seed(SEED):
     torch.manual_seed(SEED)
@@ -30,46 +46,38 @@ def make_dataset(
 
 ):
     print("... making dataset ...")
-    dataset = FishDataset(root_dir)
-
-    dataset_size = len(dataset)
+    data_samples, classes, class_to_idx = get_data_samples(root_dir)
+    
+    dataset_size = len(data_samples)
     train_size = int(train_ratio * dataset_size)
     test_size = dataset_size - train_size
-
-    train_ds, test_ds = random_split(
-        dataset, [train_size, test_size], generator=generator
+    
+    train_set, test_set = random_split(
+        data_samples, [train_size, test_size], generator=generator
     )
+
+    train_ds = FishDataset(train_set, classes, class_to_idx)
+    test_ds = FishDataset(test_set, classes, class_to_idx)
+
     mean,std = None, None
     
     if get_stats:
-        mean, std = train_ds.dataset.compute_mean_std()
+        mean, std = train_ds.compute_mean_std()
 
     print("done")
     return train_ds, test_ds, mean, std
 
-def _worker_init_fn(worker_id, base_seed, dataset_subset, transform_to_set):
-    """
-    Generic worker_init_fn.
-    - Seeds the worker.
-    - Sets the appropriate transform on the underlying dataset of the subset.
-    """
+def seed_worker(worker_id, base_seed):
     worker_seed = base_seed + worker_id
     np.random.seed(worker_seed)
     random.seed(worker_seed)
-    # The dataset_subset is a torch.utils.data.Subset
-    # Its .dataset attribute points to the original FishDataset instance
-    if hasattr(dataset_subset, 'dataset') and hasattr(dataset_subset.dataset, 'transforms'):
-        dataset_subset.dataset.transforms = transform_to_set
-    else:
-        # This case should ideally not happen if dataset_subset is a Subset of FishDataset
-        print(f"Warning: Worker {worker_id} could not set transforms. "
-              f"dataset_subset type: {type(dataset_subset)}, "
-              f"has 'dataset': {hasattr(dataset_subset, 'dataset')}")
+    torch.manual_seed(worker_seed)
+
         
 def make_data_loaders(
     train_ds,
     test_ds,
-    transforms: Dict,
+    transforms,
     batch_size: int,
     generator : torch.Generator
 ):
@@ -85,22 +93,11 @@ def make_data_loaders(
     print("... making dataloaders ...")
     
     base_seed = generator.initial_seed()
-
-    train_ds.dataset.transforms = transforms["train"]
-    test_ds.dataset.transforms = transforms["test"]
-    train_init_fn = functools.partial(
-        _worker_init_fn,
-        base_seed=base_seed,
-        dataset_subset=train_ds,
-        transform_to_set=transforms["train"]
-    )
-
-    test_init_fn = functools.partial(
-        _worker_init_fn,
-        base_seed=base_seed, # Use the same base_seed, worker_id will make it unique
-        dataset_subset=test_ds,
-        transform_to_set=transforms["test"]
-    )
+    
+    train_ds.transforms = transforms["train"]
+    test_ds.transforms = transforms["test"]
+    
+    worker_init = functools.partial(seed_worker, base_seed=base_seed)
     
     train_dl = DataLoader(
         train_ds,
@@ -110,18 +107,19 @@ def make_data_loaders(
         pin_memory=True,
         persistent_workers=True,
         drop_last=True,
-        worker_init_fn=train_init_fn,
+        worker_init_fn=worker_init,
         generator=generator
     )
 
     test_dl = DataLoader(
         test_ds,
         batch_size=batch_size,
+        shuffle=False,
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
         drop_last=True,
-        worker_init_fn=test_init_fn,
+        worker_init_fn=worker_init,
         generator=generator
     )
 
