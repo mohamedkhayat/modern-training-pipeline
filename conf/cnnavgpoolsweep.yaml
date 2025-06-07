@@ -32,10 +32,6 @@ parameters:
     max: 64
     min: 32
     distribution: int_uniform
-  model.dropout:
-    values: 
-      - 0
-    distribution: categorical  
   epochs:
     max: 100
     min: 25
