@@ -2,56 +2,43 @@ import torch.nn as nn
 from .convBlock import ConvBlock
 import torch.nn.functional as F
 import math
+import torch
 
 
 class CNN_FC(nn.Module):
-    def __init__(self, hidden_size=256, out_size=9, p=0.3, last_filter_size=128):
+    def __init__(
+        self, input_shape=224, hidden_size=256, out_size=9, p=0.3, last_filter_size=128
+    ):
         super(CNN_FC, self).__init__()
 
         self.blocks = nn.ModuleList(
             [
                 ConvBlock(
-                    in_out_shapes=[3, 32],
+                    in_out_shapes=[3, 64],
                     kernels=[7, 3],
                     strides=[2, 1],
                     paddings=[3, 1],
                 ),
-                # 32 x 112 x 112
-                ConvBlock(
-                    in_out_shapes=[32, 32],
-                    kernels=[3, 3],
-                    strides=[1, 1],
-                    paddings=[1, 1],
-                ),
                 # 32 x 56 x 56
                 ConvBlock(
-                    in_out_shapes=[32, 64],
+                    in_out_shapes=[64, 128],
                     kernels=[5, 3],
                     strides=[2, 1],
                     paddings=[2, 1],
                 ),
-                # 64 x 28 x 28
-                ConvBlock(
-                    in_out_shapes=[64, 64],
-                    kernels=[3, 3],
-                    strides=[1, 1],
-                    paddings=[1, 1],
-                ),
                 # 64 x 14 x 14
                 ConvBlock(
-                    in_out_shapes=[64, last_filter_size],
+                    in_out_shapes=[128, 256],
                     kernels=[3, 3],
                     strides=[2, 1],
                     paddings=[1, 1],
                 ),
-                # 128 x 7 x 7
                 ConvBlock(
-                    in_out_shapes=[last_filter_size, last_filter_size],
+                    in_out_shapes=[256, last_filter_size],
                     kernels=[3, 3],
-                    strides=[1, 1],
+                    strides=[2, 1],
                     paddings=[1, 1],
                 ),
-                # 128 x 3 x 3
             ]
         )
         last_filter_size = self.blocks[-1].in_out_shapes[1]
@@ -60,10 +47,10 @@ class CNN_FC(nn.Module):
 
         self.flatten = nn.Flatten()
 
-        n_blocks = len([block for block in self.blocks if isinstance(block, ConvBlock)])
-        fc1_in_features = last_filter_size * int(
-            math.pow(math.floor(224 / (math.pow(2, n_blocks))), 2)
-        )
+        with torch.no_grad():
+            dummy = torch.zeros(1, 3, input_shape, input_shape)
+            fc1_in_features = self.flatten(self.convblocks(dummy)).shape[1]
+
         self.fc1 = nn.Linear(fc1_in_features, hidden_size)
         self.batchnorm1 = nn.BatchNorm1d(hidden_size)
         self.dropout = nn.Dropout(p)
@@ -81,8 +68,16 @@ class CNN_FC(nn.Module):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
-        elif isinstance(m, nn.BatchNorm1d) or isinstance(m, nn.BatchNorm2d):
+        elif isinstance(m, nn.BatchNorm1d):
             nn.init.constant_(m.weight, 1)
+            nn.init.constant_(m.bias, 0)
+
+        elif isinstance(m, nn.BatchNorm2d):
+            if getattr(m, "is_last_in_block", False):
+                nn.init.constant_(m.weight, 0)
+            else:
+                nn.init.constant_(m.weight, 1)
+
             nn.init.constant_(m.bias, 0)
 
         elif isinstance(m, nn.Linear):
@@ -94,9 +89,9 @@ class CNN_FC(nn.Module):
         out_convblock = self.convblocks(x)
         out_flatten = self.flatten(out_convblock)
         out_fc1 = self.batchnorm1(self.fc1(out_flatten))
-        out_bn1 = self.dropout(F.relu(out_fc1))
+        out_bn1 = self.dropout(F.selu(out_fc1))
         out_fc2 = self.batchnorm2(self.fc2(out_bn1))
-        out_bn2 = F.relu(out_fc2)
+        out_bn2 = F.selu(out_fc2)
         out = self.fc3(out_bn2)
 
         return out
