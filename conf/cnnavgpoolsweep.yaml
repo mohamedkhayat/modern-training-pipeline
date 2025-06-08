@@ -9,7 +9,7 @@ parameters:
     min: 5
     distribution: int_uniform
   lr:
-    max: 0.001
+    max: 0.01
     min: 0.00025
     distribution: uniform
   weight_decay:
@@ -20,6 +20,10 @@ parameters:
     values: 
       - cnn_avg
     distribution: categorical
+  model.dropout:
+    min: 0.1   
+    max: 0.5
+    distribution: uniform
   model.last_filter_size:
     max: 512
     min: 256
@@ -33,13 +37,12 @@ parameters:
     min: 32
     distribution: int_uniform
   epochs:
-    max: 100
-    min: 25
-    distribution: int_uniform
+    values:
+      - 100
+    distribution: categorical
   aug:
     values:
       - hard
-      - easy
     distribution: categorical
 command:
   - ${env}

@@ -1,3 +1,5 @@
 name : cnn_avg
-out_size: 9
+out_size: 2
 last_filter_size : 512
+dropout: 0.3
+alpha : 1

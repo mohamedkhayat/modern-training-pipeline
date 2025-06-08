@@ -21,12 +21,12 @@ parameters:
       - cnn_fc
     distribution: categorical
   model.last_filter_size:
-    max: 156
-    min: 96
+    max: 512
+    min: 256
     distribution: int_uniform
   model.hidden_size:
     min: 128   
-    max: 1024
+    max: 512
     distribution: int_uniform
   model.dropout:
     min: 0.1   
@@ -46,8 +46,7 @@ parameters:
     distribution: int_uniform
   aug:
     values:
-      - hard
-      - easy
+      - med
     distribution: categorical
 command:
   - ${env}

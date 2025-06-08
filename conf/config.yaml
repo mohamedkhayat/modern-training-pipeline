@@ -7,10 +7,11 @@ batch_size: 64
 epochs: 50
 lr: 0.01
 weight_decay: 0.001
-train_ratio: 0.7
+train_ratio: 0.8
 warmup_epochs: 5
-root_dir: data/NA_Fish_Dataset
+root_dir: Brain_Tumor
 log : True
 seed : 42
 aug : hard
 n_images : 6
+input_size : 224
