@@ -3,6 +3,8 @@ import cv2
 import torch
 from PIL import Image
 import torchvision.transforms.v2 as v2
+import pathlib
+import pickle
 
 
 class FishDataset(Dataset):
@@ -38,6 +40,24 @@ class FishDataset(Dataset):
 
         return img, label
 
+    def get_mean_std(self):
+        output_dir = pathlib.Path("checkpoints")
+        mean_path = output_dir / "mean.pkl"
+        std_path = output_dir / "std.pkl"
+
+        try:
+            with mean_path.open("rb") as f:
+                mean = pickle.load(f)
+
+            with std_path.open("rb") as f:
+                std = pickle.load(f)
+
+        except FileNotFoundError as e:
+            print(f"Error loading mean and std : {e}")
+            mean, std = self.compute_mean_std()
+
+        return mean, std
+
     def compute_mean_std(self):
         # from dinesh2911 https://discuss.pytorch.org/t/computing-the-mean-and-std-of-dataset/34949/32
         print("... calculating dataset mean and std ...")
@@ -51,7 +71,7 @@ class FishDataset(Dataset):
         # step I: Mean
         for image_path, _ in self.samples:
             # Open image and convert to tensor
-            image = Image.open(image_path)
+            image = Image.open(image_path).convert("RGB")
             image_tensor = to_tensor(image)
             mean += torch.mean(image_tensor, dim=(1, 2))
 
@@ -67,6 +87,22 @@ class FishDataset(Dataset):
             var += torch.mean(
                 (image_tensor - mean.unsqueeze(1).unsqueeze(2)) ** 2, dim=(1, 2)
             )
+        std = torch.sqrt(var / len(self.samples))
+        print("... done calculating ...")
+        print("... saving them ...")
 
-        print("done")
-        return mean, torch.sqrt(var / len(self.samples))
+        output_dir = pathlib.Path("checkpoints")
+        mean_path = output_dir / "mean.pkl"
+        std_path = output_dir / "std.pkl"
+
+        try:
+            with mean_path.open("wb") as f:
+                pickle.dump(mean, f)
+            with std_path.open("wb") as f:
+                pickle.dump(std, f)
+
+            print("... done saving ...")
+        except Exception as e:
+            print(f"Error saving : {e}")
+
+        return mean, std
