@@ -20,6 +20,7 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 def get_data_samples(root_dir):
     root_dir = Path(root_dir)
     classes = sorted([d.name for d in root_dir.iterdir() if d.is_dir()])
@@ -34,21 +35,23 @@ def get_data_samples(root_dir):
 
     return samples, classes, class_to_idx
 
+
 def unnormalize(img_tensor, mean, std):
-    # mean (1, 3) 
+    # mean (1, 3)
     mean = torch.tensor(mean).view(-1, 1, 1)
-    # std (1, 3) 
+    # std (1, 3)
     std = torch.tensor(std).view(-1, 1, 1)
 
     return img_tensor * std + mean
 
+
 def log_transforms(run, batch, n_images, classes, aug, mean, std):
     cols = 3
     rows = (n_images + cols - 1) // cols
-    
+
     fig, axes = plt.subplots(rows, cols, figsize=(rows * 3, cols * 3))
     axes = axes.flatten()
-    
+
     images, labels = batch
     fig.suptitle(f"{aug} transforms", fontsize=16)
 
@@ -56,16 +59,17 @@ def log_transforms(run, batch, n_images, classes, aug, mean, std):
         # 1 x 3 x H x W
         img = img.squeeze(0)
         img = unnormalize(img, mean, std).cpu().numpy()
-        img = img.transpose(1,2,0)
+        img = img.transpose(1, 2, 0)
         img = (img * 255).clip(0, 255).astype("uint8")
 
         ax.imshow(img)
-        ax.axis('off')
-        ax.set_title(f"{classes[label]}") 
+        ax.axis("off")
+        ax.set_title(f"{classes[label]}")
 
     plt.tight_layout()
     run.log({"transforms visualization": wandb.Image(fig)})
     plt.close(fig)
+
 
 def set_seed(SEED):
     torch.manual_seed(SEED)
@@ -79,7 +83,7 @@ def set_seed(SEED):
 def make_dataset(
     root_dir: str,
     train_ratio: float,
-    SEED : int,
+    SEED: int,
     get_stats: bool = False,
 ):
     print("... making dataset ...")
@@ -94,8 +98,13 @@ def make_dataset(
     )
     """
 
-    train_set, test_set = train_test_split(data_samples, train_size=train_ratio, stratify = [label for _, label in data_samples], random_state = SEED)
-    
+    train_set, test_set = train_test_split(
+        data_samples,
+        train_size=train_ratio,
+        stratify=[label for _, label in data_samples],
+        random_state=SEED,
+    )
+
     train_ds = FishDataset(train_set, classes, class_to_idx)
     test_ds = FishDataset(test_set, classes, class_to_idx)
 
@@ -116,7 +125,7 @@ def seed_worker(worker_id, base_seed):
 
 
 def make_data_loaders(
-    train_ds, test_ds, transforms, batch_size: int, generator: torch.Generator, aug:str
+    train_ds, test_ds, transforms, batch_size: int, generator: torch.Generator, aug: str
 ):
     """Creates training and testing data loaders from a dataset.
 
@@ -185,9 +194,7 @@ def train(
         scaler (GradScaler): Gradient scaler for mixed precision training.
     """
     loss = 0.0
-    f1 = F1Score("multiclass", num_classes=num_classes, average="weighted").to(
-        device
-    )
+    f1 = F1Score("multiclass", num_classes=num_classes, average="weighted").to(device)
     acc = Accuracy(task="multiclass", num_classes=num_classes, average="weighted").to(
         device
     )
@@ -244,9 +251,7 @@ def evaluate(
     y_pred = []
 
     loss = 0.0
-    f1 = F1Score("multiclass", num_classes=num_classes, average="weighted").to(
-        device
-    )
+    f1 = F1Score("multiclass", num_classes=num_classes, average="weighted").to(device)
     acc = Accuracy(task="multiclass", num_classes=num_classes, average="weighted").to(
         device
     )
@@ -267,14 +272,14 @@ def evaluate(
         acc.update(out, y)
 
         y_true.extend(y.cpu().numpy())
-        y_pred.extend(np.argmax(out.cpu().numpy(), axis = 1))
+        y_pred.extend(np.argmax(out.cpu().numpy(), axis=1))
 
     f1_score = f1.compute()
     accuracy = acc.compute()
 
     loss = loss / len(test_dl)
     print(f"Eval - F1-Score : {f1_score:.4f} - Loss : {loss:.4f}")
-    
+
     return loss, f1_score, accuracy, y_true, y_pred
 
 
@@ -296,18 +301,24 @@ def initwandb(cfg):
     )
     return run
 
-def log_confusion_matrix(run,y_true, y_pred, classes):
+
+def log_confusion_matrix(run, y_true, y_pred, classes):
     cm = confusion_matrix(y_true, y_pred)
 
     fig, ax = plt.subplots(figsize=(8, 6))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues",
-                xticklabels=classes, yticklabels=classes, ax=ax)
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=classes,
+        yticklabels=classes,
+        ax=ax,
+    )
     ax.set_title("Confusion Matrix")
     ax.set_xlabel("Predicted Labels")
     ax.set_ylabel("True Labels")
     plt.tight_layout()
-    
+
     run.log({"confusion_matrix": wandb.Image(fig)})
     plt.close(fig)
-
-    
