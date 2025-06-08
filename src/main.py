@@ -12,8 +12,8 @@ from utils.generalutils import (
     make_dataset,
     log_confusion_matrix,
     log_transforms,
+    get_optimizer,
 )
-import torch.optim as optim
 from torch.amp import GradScaler
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, SequentialLR, LinearLR
 import hydra
@@ -29,21 +29,26 @@ def main(cfg: DictConfig):
     else:
         name = get_run_name(cfg)
 
+    print(name)
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"using : {device}")
 
     generator = set_seed(cfg.seed)
 
-    root_dir = pathlib.Path(rf"{cfg.root_dir}")
+    root_dir = pathlib.Path("data", rf"{cfg.root_dir}")
 
     train_ds, test_ds, mean, std = make_dataset(
         root_dir,
         cfg.train_ratio,
         cfg.seed,
         cfg.architecture in ["cnn_fc", "cnn_avg", "test"],
+        cfg.root_dir == "Animals",
     )
 
-    model, transforms = get_model(cfg, device, mean, std)
+    n_classes = len(train_ds.classes)
+
+    model, transforms, mean, std = get_model(cfg, device, mean, std, n_classes)
 
     train_dl, test_dl = make_data_loaders(
         train_ds, test_ds, transforms, cfg.batch_size, generator, cfg.aug
@@ -52,15 +57,12 @@ def main(cfg: DictConfig):
     log_transforms(
         run, next(iter(train_dl)), cfg.n_images, train_ds.classes, cfg.aug, mean, std
     )
+
+    # TODO: make viz transforms also work with pre trained models, look at mean and std in make_dataset
     # TODO: switch dataset
     # TODO: add cross validation
-    # TODO: add error analysis
 
-    optimizer = optim.Adam(
-        model.parameters(),
-        lr=cfg.lr,
-        weight_decay=cfg.weight_decay,
-    )
+    optimizer = get_optimizer(cfg, model)
 
     warmup_scheduler = LinearLR(
         optimizer, start_factor=0.1, total_iters=cfg.warmup_epochs
@@ -78,8 +80,9 @@ def main(cfg: DictConfig):
 
     loss = nn.CrossEntropyLoss()
     scaler = GradScaler()
+
     early_stopper = EarlyStopping(
-        patience=10, delta=0.001, path="checkpoints/", name=name
+        patience=10, delta=0.0001, path="checkpoints/", name=name
     )
 
     best_val_f1 = 0.0
@@ -89,11 +92,12 @@ def main(cfg: DictConfig):
         print(f"Epoch : {epoch + 1} Learning rate : {scheduler.get_last_lr()[0]:.5f}")
 
         train_loss, train_f1, train_acc = train(
-            model, device, train_dl, loss, cfg.model.out_size, optimizer, scaler
+            model, device, train_dl, loss, n_classes, optimizer, scaler
         )
         val_loss, val_f1, val_acc, _, _ = evaluate(
-            model, device, test_dl, loss, cfg.model.out_size
+            model, device, test_dl, loss, n_classes
         )
+
         best_val_f1 = max(val_f1, best_val_f1)
         best_val_acc = max(val_acc, best_val_acc)
 
@@ -121,7 +125,7 @@ def main(cfg: DictConfig):
 
         model = early_stopper.get_best_model(model)
         val_loss, val_f1, val_acc, y_true, y_pred = evaluate(
-            model, device, test_dl, loss, cfg.model.out_size
+            model, device, test_dl, loss, n_classes
         )
 
         log_confusion_matrix(run, y_true, y_pred, train_ds.classes)
