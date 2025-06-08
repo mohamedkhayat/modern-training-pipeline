@@ -53,3 +53,9 @@ class EarlyStopping:
                     print(f"could not delete {path.name}: {e}")
 
         print(f"kept best model: {best_path.name}")
+
+    def get_best_model(self, model):
+        _, best_path = max(self.saved_checkpoints, key=lambda x: x[0])
+        model.load_state_dict(torch.load(best_path, weights_only=True))
+        model.eval
+        return model
