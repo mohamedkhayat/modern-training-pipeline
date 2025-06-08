@@ -57,5 +57,5 @@ class EarlyStopping:
     def get_best_model(self, model):
         _, best_path = max(self.saved_checkpoints, key=lambda x: x[0])
         model.load_state_dict(torch.load(best_path, weights_only=True))
-        model.eval
+        model.eval()
         return model
