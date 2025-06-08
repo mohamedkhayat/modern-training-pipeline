@@ -6,13 +6,35 @@ import torchvision.transforms.v2 as v2
 import pathlib
 import pickle
 
+transdict = {
+    "cane": "dog",
+    "cavallo": "horse",
+    "elefante": "elephant",
+    "ragno": "spider",
+    "farfalla": "butterfly",
+    "gallina": "chicken",
+    "gatto": "cat",
+    "mucca": "cow",
+    "pecora": "sheep",
+    "scoiattolo": "squirrel",
+    "dog": "cane",
+    "cavallo": "horse",
+    "elephant": "elefante",
+    "butterfly": "farfalla",
+    "chicken": "gallina",
+    "cat": "gatto",
+    "cow": "mucca",
+    "spider": "ragno",
+    "squirrel": "scoiattolo",
+}
+
 
 class FishDataset(Dataset):
     """
     A dataset class for loading fish images and their labels.
     """
 
-    def __init__(self, samples, classes, class_to_idx):
+    def __init__(self, samples, classes, class_to_idx, translate=False):
         """
         Initializes the FishDataset.
 
@@ -23,6 +45,10 @@ class FishDataset(Dataset):
         """
         super(FishDataset, self).__init__()
         self.classes = classes
+
+        if translate:
+            self.classes = [transdict[clss] for clss in classes]
+
         self.class_to_idx = class_to_idx
         self.samples = samples
         self.transforms = None
@@ -40,8 +66,10 @@ class FishDataset(Dataset):
 
         return img, label
 
-    def get_mean_std(self):
-        output_dir = pathlib.Path("checkpoints")
+    def get_mean_std(self, root_dir):
+        output_dir = pathlib.Path("checkpoints") / root_dir
+        output_dir.mkdir(parents=True, exist_ok=True)
+
         mean_path = output_dir / "mean.pkl"
         std_path = output_dir / "std.pkl"
 
@@ -54,11 +82,11 @@ class FishDataset(Dataset):
 
         except FileNotFoundError as e:
             print(f"Error loading mean and std : {e}")
-            mean, std = self.compute_mean_std()
+            mean, std = self.compute_mean_std(root_dir)
 
         return mean, std
 
-    def compute_mean_std(self):
+    def compute_mean_std(self, root_dir):
         # from dinesh2911 https://discuss.pytorch.org/t/computing-the-mean-and-std-of-dataset/34949/32
         print("... calculating dataset mean and std ...")
         # Initialize variables to store cumulative sum of pixel values
@@ -92,8 +120,8 @@ class FishDataset(Dataset):
         print("... saving them ...")
 
         output_dir = pathlib.Path("checkpoints")
-        mean_path = output_dir / "mean.pkl"
-        std_path = output_dir / "std.pkl"
+        mean_path = output_dir / root_dir / "mean.pkl"
+        std_path = output_dir / root_dir / "std.pkl"
 
         try:
             with mean_path.open("wb") as f:
