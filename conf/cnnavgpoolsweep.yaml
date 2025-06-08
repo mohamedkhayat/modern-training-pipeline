@@ -14,15 +14,15 @@ parameters:
     distribution: uniform
   weight_decay:
     max: 0.02
-    min: 0.005
+    min: 0.001
     distribution: uniform
   model:
     values: 
       - cnn_avg
     distribution: categorical
   model.last_filter_size:
-    max: 768
-    min: 96
+    max: 512
+    min: 256
     distribution: int_uniform
   train_ratio:
     values:
@@ -36,6 +36,11 @@ parameters:
     max: 100
     min: 25
     distribution: int_uniform
+  aug:
+    values:
+      - hard
+      - easy
+    distribution: categorical
 command:
   - ${env}
   - python

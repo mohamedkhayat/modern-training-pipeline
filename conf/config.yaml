@@ -5,9 +5,12 @@ defaults:
 architecture: ${model.name}
 batch_size: 64
 epochs: 50
-lr: 0.001
-weight_decay: 0.01
+lr: 0.01
+weight_decay: 0.001
 train_ratio: 0.7
 warmup_epochs: 5
 root_dir: data/NA_Fish_Dataset
-logwandb : True
+log : True
+seed : 42
+aug : hard
+n_images : 6
