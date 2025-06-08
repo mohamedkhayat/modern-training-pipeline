@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 from dataset import FishDataset
 from typing import Dict
@@ -9,7 +9,7 @@ from torch.optim import Optimizer
 from torch.amp import GradScaler
 from datetime import datetime
 import wandb
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 from torchmetrics.classification import F1Score, Accuracy
 import random
 import numpy as np
@@ -19,6 +19,7 @@ import os
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+import torch.optim as optim
 
 
 def get_data_samples(root_dir):
@@ -85,6 +86,7 @@ def make_dataset(
     train_ratio: float,
     SEED: int,
     get_stats: bool = False,
+    translate: bool = False,
 ):
     print("... making dataset ...")
     data_samples, classes, class_to_idx = get_data_samples(root_dir)
@@ -105,13 +107,13 @@ def make_dataset(
         random_state=SEED,
     )
 
-    train_ds = FishDataset(train_set, classes, class_to_idx)
-    test_ds = FishDataset(test_set, classes, class_to_idx)
+    train_ds = FishDataset(train_set, classes, class_to_idx, translate)
+    test_ds = FishDataset(test_set, classes, class_to_idx, translate)
 
     mean, std = None, None
 
     if get_stats:
-        mean, std = train_ds.get_mean_std()
+        mean, std = train_ds.get_mean_std(root_dir)
 
     print("... done ...")
     return train_ds, test_ds, mean, std
@@ -286,6 +288,7 @@ def evaluate(
 def get_run_name(cfg):
     name = (
         datetime.now().strftime("%Y%m%d-%H%M%S")
+        + f"_dataset={cfg.root_dir}"
         + f"_model={cfg.model.name}_lr={cfg.lr}"
     )
     return name
@@ -322,3 +325,34 @@ def log_confusion_matrix(run, y_true, y_pred, classes):
 
     run.log({"confusion_matrix": wandb.Image(fig)})
     plt.close(fig)
+
+
+def get_optimizer(cfg: DictConfig, model: nn.Module):
+    if cfg.architecture not in ["cnn_fc", "cnn_avg"]:
+        head_params_list = []
+        backbone_params_list = []
+
+        for name, param in model.named_parameters():
+            if not param.requires_grad:
+                continue
+
+            elif name.startswith("fc") or name.startswith("classifier"):
+                head_params_list.append(param)
+            else:
+                backbone_params_list.append(param)
+
+        optimizer = optim.AdamW(
+            [
+                {"params": head_params_list, "lr": cfg.lr},
+                {"params": backbone_params_list, "lr": cfg.lr / 10},
+            ],
+            weight_decay=cfg.weight_decay,
+        )
+    else:
+        optimizer = optim.AdamW(
+            model.parameters(),
+            lr=cfg.lr,
+            weight_decay=cfg.weight_decay,
+        )
+
+    return optimizer
