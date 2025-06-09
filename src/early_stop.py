@@ -18,6 +18,11 @@ class EarlyStopping:
         self.saved_checkpoints = []
 
     def __call__(self, val_metric, model):
+        if self.counter >= self.patience:
+            print("early stop triggered")
+            self.earlystop = True
+            self.cleanup_checkpoints()
+
         if self.best_metric is None:
             self.best_metric = val_metric
 
@@ -33,14 +38,13 @@ class EarlyStopping:
             self.counter = 0
             print("saved model weights")
 
-        if self.counter >= self.patience:
-            print("early stop triggered")
-            self.earlystop = True
-            self.cleanup_checkpoints()
-
         return self.earlystop
 
     def cleanup_checkpoints(self):
+        if not self.saved_checkpoints:  # Check if the list is empty
+            print("No checkpoints to clean up.")
+            return
+
         print("cleaning up old checkpoints...")
         best_val, best_path = max(self.saved_checkpoints, key=lambda x: x[0])
 
@@ -55,7 +59,10 @@ class EarlyStopping:
         print(f"kept best model: {best_path.name}")
 
     def get_best_model(self, model):
-        _, best_path = max(self.saved_checkpoints, key=lambda x: x[0])
-        model.load_state_dict(torch.load(best_path, weights_only=True))
         model.eval()
+
+        if len(self.saved_checkpoints) > 0:
+            _, best_path = max(self.saved_checkpoints, key=lambda x: x[0])
+            model.load_state_dict(torch.load(best_path, weights_only=True))
+
         return model
