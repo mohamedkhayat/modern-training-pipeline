@@ -3,22 +3,27 @@ import torch.nn as nn
 import pathlib
 from early_stop import EarlyStopping
 from utils.generalutils import (
-    make_data_loaders,
-    train,
     evaluate,
+    get_optimizer,
+    set_seed,
+    train,
+)
+from utils.data_utils import make_data_loaders, make_dataset
+from utils.wandb_utils import (
     initwandb,
     get_run_name,
-    set_seed,
-    make_dataset,
     log_confusion_matrix,
+    log_gradcam_to_wandb_streamlined,
+    log_model_params,
+    log_training_time,
     log_transforms,
-    get_optimizer,
 )
 from torch.amp import GradScaler
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, SequentialLR, LinearLR
 import hydra
 from omegaconf import DictConfig
 from models.model_factory import get_model
+import time
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
@@ -28,8 +33,6 @@ def main(cfg: DictConfig):
         name = run.name
     else:
         name = get_run_name(cfg)
-
-    print(name)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"using : {device}")
@@ -50,6 +53,8 @@ def main(cfg: DictConfig):
 
     model, transforms, mean, std = get_model(cfg, device, mean, std, n_classes)
 
+    log_model_params(run, model)
+
     train_dl, test_dl = make_data_loaders(
         train_ds, test_ds, transforms, cfg.batch_size, generator, cfg.aug
     )
@@ -58,8 +63,6 @@ def main(cfg: DictConfig):
         run, next(iter(train_dl)), cfg.n_images, train_ds.classes, cfg.aug, mean, std
     )
 
-    # TODO: make viz transforms also work with pre trained models, look at mean and std in make_dataset
-    # TODO: switch dataset
     # TODO: add cross validation
 
     optimizer = get_optimizer(cfg, model)
@@ -88,13 +91,14 @@ def main(cfg: DictConfig):
     best_val_f1 = 0.0
     best_val_acc = 0.0
 
+    start_time = time.time()
     for epoch in range(cfg.epochs):
         print(f"Epoch : {epoch + 1} Learning rate : {scheduler.get_last_lr()[0]:.5f}")
 
         train_loss, train_f1, train_acc = train(
             model, device, train_dl, loss, n_classes, optimizer, scaler
         )
-        val_loss, val_f1, val_acc, _, _ = evaluate(
+        val_loss, val_f1, val_acc, *_ = evaluate(
             model, device, test_dl, loss, n_classes
         )
 
@@ -124,10 +128,15 @@ def main(cfg: DictConfig):
         run.log({"best val acc": best_val_acc})
 
         model = early_stopper.get_best_model(model)
-        val_loss, val_f1, val_acc, y_true, y_pred = evaluate(
-            model, device, test_dl, loss, n_classes
+
+        val_loss, val_f1, val_acc, y_true, y_pred, attributions = evaluate(
+            model, device, test_dl, loss, n_classes, grad_cam=True
         )
 
+        log_gradcam_to_wandb_streamlined(
+            run, next(iter(test_dl)), attributions, mean, std
+        )
+        log_training_time(run, start_time)
         log_confusion_matrix(run, y_true, y_pred, train_ds.classes)
 
         run.finish()
