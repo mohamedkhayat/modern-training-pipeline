@@ -51,10 +51,10 @@ def get_transforms(weights, mean=None, std=None, seed=42):
                 A.RGBShift(r_shift_limit=15, g_shift_limit=15, b_shift_limit=15, p=0.8),
                 A.CoarseDropout(
                     num_holes_range=(2, 3),
-                    hole_height_range=(0.1, 0.2),
-                    hole_width_range=(0.1, 0.2),
+                    hole_height_range=(0.15, 0.25),
+                    hole_width_range=(0.15, 0.25),
                     fill=0,
-                    p=0.8,
+                    p=0.9,
                 ),
                 A.GaussianBlur(
                     sigma_limit=(0.2, 0.5),
