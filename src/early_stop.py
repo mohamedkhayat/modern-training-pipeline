@@ -18,30 +18,33 @@ class EarlyStopping:
         self.saved_checkpoints = []
 
     def __call__(self, val_metric, model):
-        if self.counter >= self.patience:
-            print("early stop triggered")
-            self.earlystop = True
-            self.cleanup_checkpoints()
-
         if self.best_metric is None:
             self.best_metric = val_metric
+            print("saved model weights")
+            self.save_model(model, val_metric)
 
         elif val_metric <= self.best_metric + self.delta:
             self.counter += 1
         else:
             self.best_metric = val_metric
-            filename = f"{self.name}_{val_metric:.4f}.pth"
-            full_path = self.path / filename
-            torch.save(model.state_dict(), full_path)
-            self.saved_checkpoints.append((val_metric, full_path))
-
+            self.save_model(model, val_metric)
             self.counter = 0
             print("saved model weights")
 
+        if self.counter >= self.patience:
+            print("early stop triggered")
+            self.earlystop = True
+
         return self.earlystop
 
+    def save_model(self, model, val_metric):
+        filename = f"{self.name}_{val_metric:.4f}.pth"
+        full_path = self.path / filename
+        torch.save(model.state_dict(), full_path)
+        self.saved_checkpoints.append((val_metric, full_path))
+
     def cleanup_checkpoints(self):
-        if not self.saved_checkpoints:  # Check if the list is empty
+        if not self.saved_checkpoints:
             print("No checkpoints to clean up.")
             return
 
@@ -59,6 +62,7 @@ class EarlyStopping:
         print(f"kept best model: {best_path.name}")
 
     def get_best_model(self, model):
+        self.cleanup_checkpoints()
         model.eval()
 
         if len(self.saved_checkpoints) > 0:
