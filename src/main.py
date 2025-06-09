@@ -45,7 +45,7 @@ def main(cfg: DictConfig):
         root_dir,
         cfg.train_ratio,
         cfg.seed,
-        cfg.architecture in ["cnn_fc", "cnn_avg", "test"],
+        cfg.architecture in ["cnn_fc", "cnn_avg"],
         cfg.root_dir == "Animals",
     )
 
@@ -140,7 +140,6 @@ def main(cfg: DictConfig):
         log_confusion_matrix(run, y_true, y_pred, train_ds.classes)
 
         run.finish()
-
 
 if __name__ == "__main__":
     main()
