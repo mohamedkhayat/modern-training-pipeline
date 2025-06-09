@@ -9,13 +9,14 @@ import seaborn as sns
 import time
 from torchvision.utils import make_grid
 from .generalutils import unnormalize
+import matplotlib.cm as cm
 
 
 def initwandb(cfg):
     name = get_run_name(cfg)
     run = wandb.init(
         entity="mohamedkhayat025-none",
-        project="FishDataset",
+        project="modern-training-pipeline",
         name=name,
         config=OmegaConf.to_container(cfg, resolve=True),
     )
@@ -100,32 +101,51 @@ def log_gradcam_to_wandb_streamlined(
     attributions_batch: torch.Tensor,
     mean_norm,
     std_norm,
-    max_images_to_log=6,
+    max_images_to_log=12,
     gradcam_plot_name="Grad-CAM Overlay",
+    overlay_alpha=0.5,
+    colormap_name="jet",
+    images_per_row=4,
 ):
     original_images, _ = batch_for_gradcam
     original_images = original_images[:max_images_to_log]
 
     heatmaps = attributions_batch[:max_images_to_log]
+    heatmaps = (heatmaps - heatmaps.min()) / (heatmaps.max() - heatmaps.min() + 1e-8)
 
     unnormalized_imgs = unnormalize(original_images, mean_norm, std_norm)
+    unnormalized_imgs = torch.clamp(unnormalized_imgs, 0, 1)
 
-    heatmaps = (heatmaps - heatmaps.min()) / (heatmaps.max() - heatmaps.min() + 1e-8)
-    heatmaps_3ch = heatmaps.repeat(1, 3, 1, 1)  # Convert to RGB
+    if colormap_name:
+        cmap = cm.get_cmap(colormap_name)
+        colored_heatmaps_list = []
+        for i in range(heatmaps.shape[0]):
+            heatmap_single_ch_np = heatmaps[i, 0].cpu().numpy()
+            colored_heatmap_np = cmap(heatmap_single_ch_np)[:, :, :3]
+            colored_heatmaps_list.append(
+                torch.from_numpy(colored_heatmap_np).permute(2, 0, 1)
+            )
+        heatmaps_processed = torch.stack(colored_heatmaps_list)
+    else:
+        heatmaps_processed = heatmaps.repeat(1, 3, 1, 1)
 
     orig_grid = make_grid(
-        unnormalized_imgs, nrow=max_images_to_log, padding=2, normalize=True
+        unnormalized_imgs, nrow=images_per_row, padding=2, normalize=True
     ).cpu()
-    heat_grid = make_grid(heatmaps_3ch, nrow=max_images_to_log, padding=2).cpu()
+    heat_grid = make_grid(heatmaps_processed, nrow=images_per_row, padding=2).cpu()
 
-    overlay_grid = 0.6 * orig_grid + 0.4 * heat_grid
+    overlay_grid = (1 - overlay_alpha) * orig_grid + overlay_alpha * heat_grid
+    overlay_grid = torch.clamp(overlay_grid, 0, 1)
 
-    fig, axes = plt.subplots(1, 1, figsize=(max_images_to_log * 2, 12))
+    cols = min(images_per_row, unnormalized_imgs.size(0))
+    rows = (unnormalized_imgs.size(0) + cols - 1) // cols
 
-    for ax, grid, title in zip([axes], [overlay_grid], ["Overlays"]):
-        ax.imshow(grid.permute(1, 2, 0).cpu().numpy())
-        ax.set_title(title, fontsize=14)
-        ax.axis("off")
+    fig, ax = plt.subplots(1, 1, figsize=(cols * 2, rows * 2))
+
+    ax.imshow(overlay_grid.permute(1, 2, 0).numpy())
+    ax.axis("off")
+    ax.set_title(gradcam_plot_name, fontsize=14)
+    plt.tight_layout()
 
     plt.tight_layout()
     wandb_run.log({gradcam_plot_name: wandb.Image(fig)})
