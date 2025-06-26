@@ -1,7 +1,7 @@
 import torch
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
-from dataset import FishDataset
+from dataset import DS
 import functools
 from pathlib import Path
 import os
@@ -67,8 +67,8 @@ def make_dataset(
         random_state=SEED,
     )
 
-    train_ds = FishDataset(train_set, classes, class_to_idx, translate)
-    test_ds = FishDataset(test_set, classes, class_to_idx, translate)
+    train_ds = DS(train_set, classes, class_to_idx, translate)
+    test_ds = DS(test_set, classes, class_to_idx, translate)
 
     mean, std = None, None
 

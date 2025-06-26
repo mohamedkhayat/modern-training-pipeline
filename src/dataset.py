@@ -29,7 +29,7 @@ transdict = {
 }
 
 
-class FishDataset(Dataset):
+class DS(Dataset):
     """
     A dataset class for loading fish images and their labels.
     """
@@ -43,7 +43,7 @@ class FishDataset(Dataset):
                              Each subdirectory should be a class name,
                              containing the images for that class.
         """
-        super(FishDataset, self).__init__()
+        super(DS, self).__init__()
         self.classes = classes
 
         if translate:
