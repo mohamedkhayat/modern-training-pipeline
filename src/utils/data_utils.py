@@ -7,6 +7,24 @@ from pathlib import Path
 import os
 from .generalutils import seed_worker
 
+def download_datset():
+    username = os.getenv("KAGGLE_USERNAME")
+    api_key = os.getenv("KAGGLE_KEY")
+    if api_key is None or username is None:
+        print("Environment variable 'kaggle_key' and or 'username' is not set!")
+        username = str(input("enter username : "))
+        api_key = str(input("enter api_key : "))
+
+    os.environ["KAGGLE_USERNAME"] = username
+    os.environ["KAGGLE_KEY"] = api_key
+
+    from kaggle import api
+
+    api.authenticate()
+    print("download dataset")
+    api.dataset_download_files(
+        "zlatan599/mushroom1", path="./data", unzip=True
+    )
 
 def get_data_samples(root_dir):
     root_dir = Path(root_dir)

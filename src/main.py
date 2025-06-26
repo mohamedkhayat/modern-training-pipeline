@@ -8,7 +8,7 @@ from utils.generalutils import (
     set_seed,
     train,
 )
-from utils.data_utils import make_data_loaders, make_dataset
+from utils.data_utils import make_data_loaders, make_dataset, download_datset
 from utils.wandb_utils import (
     initwandb,
     get_run_name,
@@ -41,6 +41,9 @@ def main(cfg: DictConfig):
 
     root_dir = pathlib.Path("data", rf"{cfg.root_dir}")
 
+    if cfg.download_data==True:
+        download_datset()
+        
     train_ds, test_ds, mean, std = make_dataset(
         root_dir,
         cfg.train_ratio,
