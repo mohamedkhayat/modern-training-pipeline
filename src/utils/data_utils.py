@@ -1,3 +1,4 @@
+from typing import Dict, List, Tuple
 import torch
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
@@ -6,8 +7,10 @@ import functools
 from pathlib import Path
 import os
 from .generalutils import seed_worker
+import pandas as pd
 
-def download_datset():
+
+def download_dataset():
     username = os.getenv("KAGGLE_USERNAME")
     api_key = os.getenv("KAGGLE_KEY")
     if api_key is None or username is None:
@@ -21,12 +24,14 @@ def download_datset():
     from kaggle import api
 
     api.authenticate()
-    print("download dataset")
-    api.dataset_download_files(
-        "zlatan599/mushroom1", path="./data", unzip=True
-    )
+    print("... downloading dataset ...")
+    api.dataset_download_files("zlatan599/mushroom1", path="./data", unzip=True)
+    print(".. done ...")
 
-def get_data_samples(root_dir):
+
+def get_data_samples(
+    root_dir: str,
+) -> Tuple[List[Tuple[str, int]], List[str], Dict[str, int]]:
     root_dir = Path(root_dir)
     classes = sorted([d.name for d in root_dir.iterdir() if d.is_dir()])
     class_to_idx = {cls_name: idx for idx, cls_name in enumerate(classes)}
@@ -41,34 +46,71 @@ def get_data_samples(root_dir):
     return samples, classes, class_to_idx
 
 
+def get_mushroom_data_samples(
+    root_dir: str,
+) -> Tuple[List[Tuple[str, int]], List[Tuple[str, int]], List[str], Dict[str, int]]:
+    root_dir = Path("data")
+
+    train_df = pd.read_csv(root_dir / "train.csv")
+    print(train_df.label.value_counts())
+    train_df["type"] = "train"
+
+    test_df = pd.read_csv(root_dir / "test.csv")
+    test_df["type"] = "test"
+
+    df = pd.concat([train_df, test_df], axis=0)
+
+    paths = df["image_path"]
+    labels = df["label"]
+    types = df["type"]
+
+    train_samples = []
+    test_samples = []
+    classes = sorted(list(df["label"].unique()))
+    class_to_idx = {cls_name: idx for idx, cls_name in enumerate(classes)}
+
+    valid_extensions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}
+
+    for path, label, type in zip(paths, labels, types):
+        path = root_dir / "/".join(path.strip().split("/")[3:])
+        if Path(path).suffix.lower() in valid_extensions and path.exists():
+            cls_idx = class_to_idx[label]
+            if type == "train":
+                train_samples.append((str(path), cls_idx))
+            else:
+                test_samples.append((str(path), cls_idx))
+        else:
+            print(f"WARNING : {path} is not a valid image, skipping")
+
+    return train_samples, test_samples, classes, class_to_idx
+
+
 def make_dataset(
     root_dir: str,
     train_ratio: float,
     SEED: int,
     get_stats: bool = False,
-    translate: bool = False,
-):
+    download_data=False,
+) -> Tuple[DS, DS, torch.Tensor, torch.Tensor]:
+    if download_data:
+        download_dataset()
+
     print("... making dataset ...")
-    data_samples, classes, class_to_idx = get_data_samples(root_dir)
-    """
-    dataset_size = len(data_samples)
-    train_size = int(train_ratio * dataset_size)
-    test_size = dataset_size - train_size
+    if root_dir == "merged_dataset":
+        (train_set, test_set), classes, class_to_idx = get_mushroom_data_samples(
+            root_dir
+        )
+    else:
+        data_samples, classes, class_to_idx = get_data_samples(root_dir)
+        train_set, test_set = train_test_split(
+            data_samples,
+            train_size=train_ratio,
+            stratify=[label for _, label in data_samples],
+            random_state=SEED,
+        )
 
-    train_set, test_set = random_split(
-        data_samples, [train_size, test_size], generator=generator
-    )
-    """
-
-    train_set, test_set = train_test_split(
-        data_samples,
-        train_size=train_ratio,
-        stratify=[label for _, label in data_samples],
-        random_state=SEED,
-    )
-
-    train_ds = DS(train_set, classes, class_to_idx, translate)
-    test_ds = DS(test_set, classes, class_to_idx, translate)
+    train_ds = DS(train_set, classes, class_to_idx)
+    test_ds = DS(test_set, classes, class_to_idx)
 
     mean, std = None, None
 
@@ -81,7 +123,7 @@ def make_dataset(
 
 def make_data_loaders(
     train_ds, test_ds, transforms, batch_size: int, generator: torch.Generator, aug: str
-):
+) -> Tuple[DataLoader, DataLoader]:
     """Creates training and testing data loaders from a dataset.
 
     Args:
