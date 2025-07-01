@@ -6,35 +6,13 @@ import torchvision.transforms.v2 as v2
 import pathlib
 import pickle
 
-transdict = {
-    "cane": "dog",
-    "cavallo": "horse",
-    "elefante": "elephant",
-    "ragno": "spider",
-    "farfalla": "butterfly",
-    "gallina": "chicken",
-    "gatto": "cat",
-    "mucca": "cow",
-    "pecora": "sheep",
-    "scoiattolo": "squirrel",
-    "dog": "cane",
-    "cavallo": "horse",
-    "elephant": "elefante",
-    "butterfly": "farfalla",
-    "chicken": "gallina",
-    "cat": "gatto",
-    "cow": "mucca",
-    "spider": "ragno",
-    "squirrel": "scoiattolo",
-}
-
 
 class DS(Dataset):
     """
     A dataset class for loading fish images and their labels.
     """
 
-    def __init__(self, samples, classes, class_to_idx, translate=False):
+    def __init__(self, samples, classes, class_to_idx):
         """
         Initializes the FishDataset.
 
@@ -45,11 +23,8 @@ class DS(Dataset):
         """
         super(DS, self).__init__()
         self.classes = classes
-
-        if translate:
-            self.classes = [transdict[clss] for clss in classes]
-
         self.class_to_idx = class_to_idx
+        self.idx_to_class = {v: k for k, v in self.class_to_idx.items()}
         self.samples = samples
         self.transforms = None
 
@@ -63,7 +38,6 @@ class DS(Dataset):
         if self.transforms:
             augmented = self.transforms(image=img)
             img = augmented["image"]
-
         return img, label
 
     def get_mean_std(self, root_dir):
