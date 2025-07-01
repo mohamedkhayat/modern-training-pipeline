@@ -59,9 +59,7 @@ def main(cfg: DictConfig):
 
     log_model_params(run, model)
 
-    train_dl, test_dl = make_data_loaders(
-        train_ds, test_ds, transforms, cfg.batch_size, generator, cfg.aug
-    )
+    train_dl, test_dl = make_data_loaders(train_ds, test_ds, transforms, generator, cfg)
 
     log_transforms(
         run, next(iter(train_dl)), cfg.n_images, train_ds.classes, cfg.aug, mean, std
