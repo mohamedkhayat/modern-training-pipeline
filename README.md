@@ -404,27 +404,16 @@ The pipeline supports a variety of architectures, easily configurable via Hydra.
 
   
 
-| Model Family | Config Name(s) | Description |
-
-| ----------------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
-
-| **Custom CNN** | `cnn` | A custom-built CNN with configurable layers, hidden size, and dropout. |
-
-| **ResNet** | `resnet50` | Classic ResNet-50 architecture from Torchvision. |
-
-| **ResNeXt** | `resnext50_32x4d`, `resnext101_32x8d` | Next-generation ResNet with grouped convolutions. |
-
-| **EfficientNet** | `efficientnet_v2_s`, `efficientnet_v2_m`, `efficientnet_v2_l` | A family of models balancing accuracy and computational cost. |
-
-| **ConvNeXt** | `convnext_small`, `convnext_base`, `convnext_large` | Modernized Inception-style architecture. |
-
-| **RegNet** | `regnet_y_8gf`, `regnet_y_16gf` | Models discovered through Neural Architecture Search (NAS). |
-
-  
+| Model Family     | Config Name(s)                                           | Description                                                                 |
+|------------------|----------------------------------------------------------|-----------------------------------------------------------------------------|
+| **Custom CNN**   | `cnn`                                                    | A custom-built CNN with configurable layers, hidden size, and dropout.      |
+| **ResNet**       | `resnet50`                                               | Classic ResNet-50 architecture from Torchvision.                            |
+| **ResNeXt**      | `resnext50_32x4d`, `resnext101_32x8d`                    | Next-generation ResNet with grouped convolutions.                           |
+| **EfficientNet** | `efficientnet_v2_s`, `efficientnet_v2_m`, `efficientnet_v2_l` | A family of models balancing accuracy and computational cost.              |
+| **ConvNeXt**     | `convnext_small`, `convnext_base`, `convnext_large`      | Modernized CNN-inspired architecture with convolutional blocks.             |
+| **RegNet**       | `regnet_y_8gf`, `regnet_y_16gf`                          | Models discovered through Neural Architecture Search (NAS).                 |
 
 **Freezing layers:** controlled via `startpoint` in the model's config file. Layers before the specified `startpoint` are frozen during training.
-
-  
 
 ---
 
