@@ -24,6 +24,7 @@ from utils.wandb_utils import (
     get_run_name,
     log_confusion_matrix,
     log_gradcam_to_wandb_streamlined,
+    log_metrics,
     log_model_params,
     log_training_time,
     log_transforms,
@@ -98,16 +99,15 @@ def main(cfg: DictConfig):
         scheduler.step()
 
         if cfg.log:
-            run.log(
-                {
-                    "train f1": train_f1,
-                    "train loss": train_loss,
-                    "train acc": train_acc,
-                    "val f1": val_f1,
-                    "val loss": val_loss,
-                    "val acc": val_acc,
-                    "Learning rate": float(f"{scheduler.get_last_lr()[0]:.6f}"),
-                }
+            log_metrics(
+                run,
+                train_f1,
+                train_loss,
+                train_acc,
+                val_f1,
+                val_loss,
+                val_acc,
+                scheduler,
             )
 
         if early_stopper(val_f1, model):

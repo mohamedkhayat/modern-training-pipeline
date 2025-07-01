@@ -150,3 +150,19 @@ def log_gradcam_to_wandb_streamlined(
     plt.tight_layout()
     wandb_run.log({gradcam_plot_name: wandb.Image(fig)})
     plt.close(fig)
+
+
+def log_metrics(
+    run, train_f1, train_loss, train_acc, val_f1, val_loss, val_acc, scheduler
+):
+    run.log(
+        {
+            "train f1": train_f1,
+            "train loss": train_loss,
+            "train acc": train_acc,
+            "val f1": val_f1,
+            "val loss": val_loss,
+            "val acc": val_acc,
+            "Learning rate": float(f"{scheduler.get_last_lr()[0]:.6f}"),
+        }
+    )
