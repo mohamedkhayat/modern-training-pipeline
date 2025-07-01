@@ -9,7 +9,7 @@ lr: 0.01
 weight_decay: 0.001
 train_ratio: 0.8
 warmup_epochs: 5
-root_dir: Brain_Tumor
+root_dir: merged_dataset
 log : True
 seed : 42
 aug : hard
@@ -19,3 +19,4 @@ lr_factor: 10
 restarts : False
 patience: 10
 delta : 0.001
+n_workers : 4

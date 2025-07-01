@@ -1,5 +1,6 @@
 from collections import Counter
 from typing import Dict, List, Tuple
+from omegaconf import DictConfig
 import torch
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
@@ -140,13 +141,20 @@ def get_sampler(train_ds: DS) -> WeightedRandomSampler:
 
 
 def make_data_loaders(
-    train_ds, test_ds, transforms, batch_size: int, generator: torch.Generator, aug: str
+    train_ds: DS,
+    test_ds: DS,
+    transforms: Dict,
+    generator: torch.Generator,
+    cfg: DictConfig,
 ) -> Tuple[DataLoader, DataLoader]:
     """Creates training and testing data loaders from a dataset.
 
     Args:
+        train_ds (DS) : Dataset containing training examples.
+        test_ds (DS) : Dataset containing validation examples.
         transforms (dict): Dictionary containing 'train' and 'test' transforms.
-        batch_size (int): Batch size for the data loaders.
+        generator (torch.Generator) : Generator used in DataLoaders to ensure reproducibility.
+        dict (DictConfig) : Object containing hyper parameters and config
 
     Returns:
         tuple[DataLoader, DataLoader]: A tuple containing the training and testing data loaders.
@@ -155,7 +163,7 @@ def make_data_loaders(
 
     base_seed = generator.initial_seed()
 
-    train_ds.transforms = transforms[f"train_{aug}"]
+    train_ds.transforms = transforms[f"train_{cfg.aug}"]
     test_ds.transforms = transforms["test"]
 
     worker_init = functools.partial(seed_worker, base_seed=base_seed)
@@ -164,9 +172,9 @@ def make_data_loaders(
 
     train_dl = DataLoader(
         train_ds,
-        batch_size=batch_size,
+        batch_size=cfg.batch_size,
         sampler=sampler,
-        num_workers=4,
+        num_workers=cfg.n_workers,
         pin_memory=True,
         persistent_workers=True,
         drop_last=True,
@@ -176,9 +184,9 @@ def make_data_loaders(
 
     test_dl = DataLoader(
         test_ds,
-        batch_size=batch_size,
+        batch_size=cfg.batch_size,
         shuffle=False,
-        num_workers=4,
+        num_workers=cfg.n_workers,
         pin_memory=True,
         persistent_workers=True,
         drop_last=True,
