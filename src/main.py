@@ -2,13 +2,23 @@ import torch
 import torch.nn as nn
 import pathlib
 from early_stop import EarlyStopping
+from torch.amp import GradScaler
+import hydra
+from omegaconf import DictConfig
+from models.model_factory import get_model
+import time
 from utils.generalutils import (
+    clear_cache,
     evaluate,
     get_optimizer,
+    get_scheduler,
     set_seed,
     train,
 )
-from utils.data_utils import make_data_loaders, make_dataset, download_datset
+from utils.data_utils import (
+    make_data_loaders,
+    make_dataset,
+)
 from utils.wandb_utils import (
     initwandb,
     get_run_name,
@@ -18,12 +28,6 @@ from utils.wandb_utils import (
     log_training_time,
     log_transforms,
 )
-from torch.amp import GradScaler
-from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, SequentialLR, LinearLR
-import hydra
-from omegaconf import DictConfig
-from models.model_factory import get_model
-import time
 
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
@@ -41,15 +45,12 @@ def main(cfg: DictConfig):
 
     root_dir = pathlib.Path("data", rf"{cfg.root_dir}")
 
-    if cfg.download_data==True:
-        download_datset()
-        
     train_ds, test_ds, mean, std = make_dataset(
         root_dir,
         cfg.train_ratio,
         cfg.seed,
         cfg.architecture in ["cnn_fc", "cnn_avg"],
-        cfg.root_dir == "Animals",
+        cfg.download_data,
     )
 
     n_classes = len(train_ds.classes)
@@ -70,25 +71,13 @@ def main(cfg: DictConfig):
 
     optimizer = get_optimizer(cfg, model)
 
-    warmup_scheduler = LinearLR(
-        optimizer, start_factor=0.1, total_iters=cfg.warmup_epochs
-    )
-
-    cosine_scheduler = CosineAnnealingWarmRestarts(
-        optimizer, T_0=10, T_mult=2, eta_min=1e-6
-    )
-
-    scheduler = SequentialLR(
-        optimizer,
-        schedulers=[warmup_scheduler, cosine_scheduler],
-        milestones=[cfg.warmup_epochs],
-    )
+    scheduler = get_scheduler(cfg, optimizer)
 
     loss = nn.CrossEntropyLoss()
     scaler = GradScaler()
 
     early_stopper = EarlyStopping(
-        patience=10, delta=0.0001, path="checkpoints/", name=name
+        patience=cfg.patience, delta=cfg.delta, path="checkpoints/", name=name
     )
 
     best_val_f1 = 0.0
@@ -132,6 +121,9 @@ def main(cfg: DictConfig):
 
         model = early_stopper.get_best_model(model)
 
+        if torch.cuda.is_available():
+            clear_cache()
+
         val_loss, val_f1, val_acc, y_true, y_pred, attributions = evaluate(
             model, device, test_dl, loss, n_classes, grad_cam=True
         )
@@ -143,6 +135,7 @@ def main(cfg: DictConfig):
         log_confusion_matrix(run, y_true, y_pred, train_ds.classes)
 
         run.finish()
+
 
 if __name__ == "__main__":
     main()
