@@ -17,6 +17,8 @@ from torch.optim.lr_scheduler import (
     LinearLR,
 )
 
+from dataset import DS
+
 
 def set_seed(SEED):
     torch.manual_seed(SEED)
@@ -190,7 +192,7 @@ def evaluate(
     return loss, f1_score, accuracy, y_true, y_pred, attributions
 
 
-def get_optimizer(cfg: DictConfig, model: nn.Module) -> optim.AdamW:
+def get_optimizer(cfg: DictConfig, model: nn.Module) -> Optimizer:
     if cfg.architecture not in ["cnn_fc", "cnn_avg"]:
         head_params_list = []
         backbone_params_list = []
@@ -221,7 +223,7 @@ def get_optimizer(cfg: DictConfig, model: nn.Module) -> optim.AdamW:
     return optimizer
 
 
-def get_scheduler(cfg: DictConfig, optimizer: optim.AdamW) -> SequentialLR:
+def get_scheduler(cfg: DictConfig, optimizer: Optimizer) -> SequentialLR:
     warmup_scheduler = LinearLR(
         optimizer, start_factor=0.1, total_iters=cfg.warmup_epochs
     )
@@ -277,7 +279,7 @@ def get_last_conv(model: nn.Module) -> nn.Conv2d:
     raise ValueError("No Conv2d layer found -- Grad-CAM needs a conv layer.")
 
 
-def clear_memory(train_dl, train_ds) -> None:
+def clear_memory(train_dl: DataLoader, train_ds: DS) -> None:
     torch.cuda.empty_cache()
     torch.cuda.synchronize()
     del train_dl, train_ds

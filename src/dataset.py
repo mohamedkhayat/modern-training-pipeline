@@ -41,6 +41,18 @@ class DS(Dataset):
         return img, label
 
     def get_mean_std(self, root_dir):
+        """
+        Retrieves the mean and standard deviation of the dataset.
+
+        If the mean and standard deviation have been pre-computed and saved,
+        they are loaded from files. Otherwise, they are computed and saved.
+
+        Args:
+            root_dir (str): The root directory where the mean and std files are stored.
+
+        Returns:
+            tuple: A tuple containing the mean and standard deviation.
+        """
         output_dir = pathlib.Path("checkpoints") / root_dir
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -61,6 +73,18 @@ class DS(Dataset):
         return mean, std
 
     def compute_mean_std(self, root_dir):
+        """
+        Computes the mean and standard deviation of the dataset.
+
+        This method calculates the mean and standard deviation of the dataset's images,
+        which is useful for normalization. The results are then saved to files.
+
+        Args:
+            root_dir (str): The root directory where the computed mean and std should be saved.
+
+        Returns:
+            tuple: A tuple containing the computed mean and standard deviation.
+        """
         # from dinesh2911 https://discuss.pytorch.org/t/computing-the-mean-and-std-of-dataset/34949/32
         print("... calculating dataset mean and std ...")
         # Initialize variables to store cumulative sum of pixel values

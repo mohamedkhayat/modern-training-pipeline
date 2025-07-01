@@ -49,6 +49,20 @@ SUPPORTED_MODELS = [
 
 
 def get_transforms(weights, mean=None, std=None):
+    """
+    Returns a dictionary of albumentations transforms.
+
+    Args:
+        weights (torchvision.models.weights.Weights, optional): Pre-trained weights from torchvision.
+                                                              If provided, the transforms will be based on the weights' presets.
+        mean (list, optional): Mean for normalization. Used if weights are not provided. Defaults to None.
+        std (list, optional): Standard deviation for normalization. Used if weights are not provided. Defaults to None.
+
+    Returns:
+        dict: A dictionary containing train and validation transforms.
+        mean : List.
+        std : List.
+    """
     if weights:
         tv_preset = weights.transforms()
         crop_sz = tv_preset.crop_size[0]
@@ -112,6 +126,20 @@ def get_transforms(weights, mean=None, std=None):
 
 
 def freeze_backbone(backbone, startpoint):
+    """
+    Freezes the parameters of a backbone model up to a specified starting point.
+    This function iterates through the parameters of the backbone model and sets
+    `requires_grad` to `False` for all parameters until the specified `startpoint`
+    is encountered in the parameter names. Once the `startpoint` is found, all subsequent
+    parameters will have `requires_grad` set to `True`.
+    Args:
+        backbone (torch.nn.Module): The backbone model whose parameters are to be frozen.
+        startpoint (str): The substring to identify the starting point in the parameter names
+            where gradients should start being enabled.
+    Returns:
+        torch.nn.Module: The backbone model with updated `requires_grad` settings for its parameters.
+    """
+
     grad = False
     for param in backbone.parameters():
         param.requires_grad = grad
@@ -124,13 +152,29 @@ def freeze_backbone(backbone, startpoint):
     return backbone
 
 
-def get_model(cfg, device, mean, std, out_size):
+def get_model(cfg, device, mean, std, n_classes):
+    """
+    Builds and returns a model based on the provided configuration.
+
+    Args:
+        cfg (DictConfig): Hydra configuration object.
+        device (str): Device to move the model to ("cpu" or "cuda").
+        mean (list): Mean for normalization (used if not a pretrained model).
+        std (list): Standard deviation for normalization (used if not a pretrained model).
+        n_classes (int): Number of output classes.
+
+    Raises:
+        ValueError: If the specified model architecture is not supported.
+
+    Returns:
+        tuple: A tuple containing the model, transforms, mean, and std.
+    """
     if cfg.architecture not in SUPPORTED_MODELS:
         raise ValueError(f"Unkown model : {cfg.architecture}")
 
     elif cfg.architecture == "cnn_avg":
         backbone = CNN_AVG_POOL(
-            out_size, cfg.model.last_filter_size, cfg.model.dropout, cfg.model.alpha
+            n_classes, cfg.model.last_filter_size, cfg.model.dropout, cfg.model.alpha
         ).to(device)
         transforms, mean, std = get_transforms(None, mean, std)
         return backbone, transforms, mean, std
@@ -139,7 +183,7 @@ def get_model(cfg, device, mean, std, out_size):
         backbone = CNN_FC(
             cfg.model.input_size,
             cfg.model.hidden_size,
-            out_size,
+            n_classes,
             cfg.model.dropout,
             cfg.model.last_filter_size,
         ).to(device)
@@ -149,7 +193,7 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "resnet50":
         weights = ResNet50_Weights.IMAGENET1K_V2
         backbone = resnet50(weights=weights)
-        backbone.fc = nn.Linear(backbone.fc.in_features, out_size)
+        backbone.fc = nn.Linear(backbone.fc.in_features, n_classes)
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -160,7 +204,9 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "efficientnet_v2_m":
         weights = EfficientNet_V2_M_Weights.DEFAULT
         backbone = efficientnet_v2_m(weights=weights, dropout=cfg.model.dropout)
-        backbone.classifier[1] = nn.Linear(backbone.classifier[1].in_features, out_size)
+        backbone.classifier[1] = nn.Linear(
+            backbone.classifier[1].in_features, n_classes
+        )
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -171,7 +217,9 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "efficientnet_v2_s":
         weights = EfficientNet_V2_S_Weights.DEFAULT
         backbone = efficientnet_v2_s(weights=weights, dropout=cfg.model.dropout)
-        backbone.classifier[1] = nn.Linear(backbone.classifier[1].in_features, out_size)
+        backbone.classifier[1] = nn.Linear(
+            backbone.classifier[1].in_features, n_classes
+        )
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -182,7 +230,9 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "efficientnet_v2_l":
         weights = EfficientNet_V2_L_Weights.DEFAULT
         backbone = efficientnet_v2_l(weights=weights, dropout=cfg.model.dropout)
-        backbone.classifier[1] = nn.Linear(backbone.classifier[1].in_features, out_size)
+        backbone.classifier[1] = nn.Linear(
+            backbone.classifier[1].in_features, n_classes
+        )
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -193,7 +243,9 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "convnext_small":
         weights = ConvNeXt_Small_Weights.DEFAULT
         backbone = convnext_small(weights=weights)
-        backbone.classifier[2] = nn.Linear(backbone.classifier[2].in_features, out_size)
+        backbone.classifier[2] = nn.Linear(
+            backbone.classifier[2].in_features, n_classes
+        )
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -204,7 +256,9 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "convnext_base":
         weights = ConvNeXt_Base_Weights.DEFAULT
         backbone = convnext_base(weights=weights)
-        backbone.classifier[2] = nn.Linear(backbone.classifier[2].in_features, out_size)
+        backbone.classifier[2] = nn.Linear(
+            backbone.classifier[2].in_features, n_classes
+        )
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -215,7 +269,9 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "convnext_large":
         weights = ConvNeXt_Large_Weights.DEFAULT
         backbone = convnext_large(weights=weights)
-        backbone.classifier[2] = nn.Linear(backbone.classifier[2].in_features, out_size)
+        backbone.classifier[2] = nn.Linear(
+            backbone.classifier[2].in_features, n_classes
+        )
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -226,7 +282,7 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "resnext50_32x4d":
         weights = ResNeXt50_32X4D_Weights.IMAGENET1K_V2
         backbone = resnext50_32x4d(weights=weights)
-        backbone.fc = nn.Linear(backbone.fc.in_features, out_size)
+        backbone.fc = nn.Linear(backbone.fc.in_features, n_classes)
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -237,7 +293,7 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "resnext101_32x8d":
         weights = ResNeXt101_32X8D_Weights.IMAGENET1K_V2
         backbone = resnext101_32x8d(weights=weights)
-        backbone.fc = nn.Linear(backbone.fc.in_features, out_size)
+        backbone.fc = nn.Linear(backbone.fc.in_features, n_classes)
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -248,7 +304,7 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "resnext101_64x4d":
         weights = ResNeXt101_64X4D_Weights.IMAGENET1K_V1
         backbone = resnext101_64x4d(weights=weights)
-        backbone.fc = nn.Linear(backbone.fc.in_features, out_size)
+        backbone.fc = nn.Linear(backbone.fc.in_features, n_classes)
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
@@ -259,7 +315,7 @@ def get_model(cfg, device, mean, std, out_size):
     elif cfg.architecture == "regnet":
         weights = RegNet_Y_16GF_Weights.IMAGENET1K_SWAG_E2E_V1
         backbone = regnet_y_16gf(weights=weights)
-        backbone.fc = nn.Linear(backbone.fc.in_features, out_size)
+        backbone.fc = nn.Linear(backbone.fc.in_features, n_classes)
 
         backbone = freeze_backbone(backbone, cfg.model.startpoint)
 
