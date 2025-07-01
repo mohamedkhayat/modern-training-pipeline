@@ -1,3 +1,4 @@
+from typing import Tuple
 from omegaconf import OmegaConf
 import torch
 import torch.nn as nn
@@ -10,9 +11,20 @@ import time
 from torchvision.utils import make_grid
 from .generalutils import unnormalize
 import matplotlib.cm as cm
+import wandb.sdk.wandb_run as Run
+from torch.optim.lr_scheduler import SequentialLR
 
 
-def initwandb(cfg):
+def initwandb(cfg) -> Run:
+    """
+    Initializes a new wandb run.
+
+    Args:
+        cfg (DictConfig): Hydra configuration object.
+
+    Returns:
+        Run: The initialized wandb run object.
+    """
     name = get_run_name(cfg)
     run = wandb.init(
         entity=cfg.wandb_entity,
@@ -23,7 +35,16 @@ def initwandb(cfg):
     return run
 
 
-def get_run_name(cfg):
+def get_run_name(cfg) -> str:
+    """
+    Generates a run name based on the current date, time, and configuration.
+
+    Args:
+        cfg (DictConfig): Hydra configuration object.
+
+    Returns:
+        str: The generated run name.
+    """
     name = (
         datetime.now().strftime("%Y%m%d-%H%M%S")
         + f"_dataset={cfg.root_dir}"
@@ -32,7 +53,19 @@ def get_run_name(cfg):
     return name
 
 
-def log_transforms(run, batch, n_images, classes, aug, mean, std):
+def log_transforms(run, batch, n_images, classes, aug, mean, std) -> None:
+    """
+    Logs a grid of transformed images to wandb.
+
+    Args:
+        run (Run): The current wandb run object.
+        batch (tuple): A batch of images and labels.
+        n_images (int): The number of images to log.
+        classes (list): A list of class names.
+        aug (str): The name of the augmentation pipeline.
+        mean (torch.Tensor): The mean used for normalization.
+        std (torch.Tensor): The standard deviation used for normalization.
+    """
     cols = 3
     rows = (n_images + cols - 1) // cols
 
@@ -58,7 +91,16 @@ def log_transforms(run, batch, n_images, classes, aug, mean, std):
     plt.close(fig)
 
 
-def log_confusion_matrix(run, y_true, y_pred, classes):
+def log_confusion_matrix(run, y_true, y_pred, classes) -> None:
+    """
+    Logs a confusion matrix to wandb.
+
+    Args:
+        run (Run): The current wandb run object.
+        y_true (list): The true labels.
+        y_pred (list): The predicted labels.
+        classes (list): A list of class names.
+    """
     cm = confusion_matrix(y_true, y_pred)
 
     fig, ax = plt.subplots(figsize=(8, 6))
@@ -80,13 +122,27 @@ def log_confusion_matrix(run, y_true, y_pred, classes):
     plt.close(fig)
 
 
-def log_training_time(run, start_time):
+def log_training_time(run, start_time) -> None:
+    """
+    Logs the total training time to wandb.
+
+    Args:
+        run (Run): The current wandb run object.
+        start_time (float): The start time of training.
+    """
     end_time = time.time()
     elapsed = end_time - start_time
     run.log({"training time ": elapsed})
 
 
-def log_model_params(run, model: nn.Module):
+def log_model_params(run: Run, model: nn.Module) -> None:
+    """
+    Logs the total and trainable parameters of a model to wandb.
+
+    Args:
+        run (Run): The current wandb run object.
+        model (nn.Module): The model.
+    """
     total_params = sum(param.numel() for param in model.parameters())
     trainable_params = sum(
         param.numel() for param in model.parameters() if param.requires_grad
@@ -96,17 +152,32 @@ def log_model_params(run, model: nn.Module):
 
 
 def log_gradcam_to_wandb_streamlined(
-    wandb_run,
-    batch_for_gradcam,
+    wandb_run: Run,
+    batch_for_gradcam: Tuple,
     attributions_batch: torch.Tensor,
-    mean_norm,
-    std_norm,
-    max_images_to_log=12,
-    gradcam_plot_name="Grad-CAM Overlay",
-    overlay_alpha=0.5,
-    colormap_name="jet",
-    images_per_row=4,
-):
+    mean_norm: torch.tensor,
+    std_norm: torch.tensor,
+    max_images_to_log: int = 12,
+    gradcam_plot_name: str = "Grad-CAM Overlay",
+    overlay_alpha: float = 0.5,
+    colormap_name: str = "jet",
+    images_per_row: int = 4,
+) -> None:
+    """
+    Logs Grad-CAM overlays to wandb.
+
+    Args:
+        wandb_run (Run): The current wandb run object.
+        batch_for_gradcam (tuple): A batch of images and labels for Grad-CAM.
+        attributions_batch (torch.Tensor): The Grad-CAM attributions.
+        mean_norm (torch.Tensor): The mean used for normalization.
+        std_norm (torch.Tensor): The standard deviation used for normalization.
+        max_images_to_log (int, optional): The maximum number of images to log. Defaults to 12.
+        gradcam_plot_name (str, optional): The name of the plot. Defaults to "Grad-CAM Overlay".
+        overlay_alpha (float, optional): The alpha value for the overlay. Defaults to 0.5.
+        colormap_name (str, optional): The name of the colormap. Defaults to "jet".
+        images_per_row (int, optional): The number of images per row in the grid. Defaults to 4.
+    """
     original_images, _ = batch_for_gradcam
     original_images = original_images[:max_images_to_log]
 
@@ -153,8 +224,28 @@ def log_gradcam_to_wandb_streamlined(
 
 
 def log_metrics(
-    run, train_f1, train_loss, train_acc, val_f1, val_loss, val_acc, scheduler
-):
+    run: Run,
+    train_f1: float,
+    train_loss: float,
+    train_acc: float,
+    val_f1: float,
+    val_loss: float,
+    val_acc: float,
+    scheduler: SequentialLR,
+) -> None:
+    """
+    Logs training and validation metrics to wandb.
+
+    Args:
+        run (Run): The current wandb run object.
+        train_f1 (float): Training F1 score.
+        train_loss (float): Training loss.
+        train_acc (float): Training accuracy.
+        val_f1 (float): Validation F1 score.
+        val_loss (float): Validation loss.
+        val_acc (float): Validation accuracy.
+        scheduler (SequentialLR) : The learning rate scheduler.
+    """
     run.log(
         {
             "train f1": train_f1,
