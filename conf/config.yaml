@@ -14,4 +14,8 @@ log : True
 seed : 42
 aug : hard
 n_images : 6
-input_size : 224
+download_data : False
+lr_factor: 10
+restarts : False
+patience: 10
+delta : 0.001

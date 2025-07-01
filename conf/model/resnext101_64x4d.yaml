@@ -1,0 +1,3 @@
+name : resnext101_64x4d
+dropout : 0.3
+startpoint : layer3

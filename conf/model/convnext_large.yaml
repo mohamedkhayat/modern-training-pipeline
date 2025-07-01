@@ -1,0 +1,4 @@
+name : convnext_large
+dropout : 0.3
+startpoint : features.2
+input_size : 224

@@ -1,0 +1,4 @@
+name : regnet
+dropout : 0.3
+startpoint : trunk_output.block3
+input_size : 384

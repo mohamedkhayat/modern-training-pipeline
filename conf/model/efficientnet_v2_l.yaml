@@ -1,0 +1,4 @@
+name : efficientnet_v2_l
+dropout : 0.3
+startpoint : features.8.2
+input_size : 480

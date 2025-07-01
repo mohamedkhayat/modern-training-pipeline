@@ -1,0 +1,4 @@
+name : resnext50_32x4d
+dropout : 0.3
+startpoint : layer3
+input_size : 224

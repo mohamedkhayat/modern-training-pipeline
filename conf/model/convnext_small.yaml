@@ -1,0 +1,4 @@
+name : convnext_small
+dropout : 0.3
+startpoint : features.6
+input_size : 224

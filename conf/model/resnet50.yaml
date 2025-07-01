@@ -1,4 +1,4 @@
 name : resnet50
-out_size: 9
 startpoint : layer4
 dropout : 0.3
+input_size : 224
