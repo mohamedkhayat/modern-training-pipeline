@@ -82,72 +82,40 @@ A **flexible and extensible PyTorch-based training pipeline** designed for image
 
 ## **📂 Project Structure**
 
-  
-
 ```
-
 modern-training-pipeline/
-
-├── README.md
-
-├── LICENSE
-
-├── requirements.txt
-
-├── conf/
-
-│ ├── config.yaml
-
-│ ├── sweep.yaml
-
-│ └── model/
-
-│ ├── cnn.yaml
-
-│ ├── efficientnet_v2_s.yaml
-
-│ ├── efficientnet_v2_m.yaml
-
-│ ├── efficientnet_v2_l.yaml
-
-│ ├── resnet50.yaml
-
-│ ├── resnext50_32x4d.yaml
-
-│ ├── convnext_base.yaml
-
-│ └── ...
-
-├── data/
-
-│ └── merged_dataset/
-
-│ └── .gitkeep
-
-├── src/
-
-│ ├── dataset.py
-
-│ ├── early_stop.py
-
-│ ├── main.py
-
-│ ├── models/
-
-│ │ ├── cnn.py
-
-│ │ └── model_factory.py
-
-│ └── utils/
-
-│ ├── data_utils.py
-
-│ ├── general_utils.py
-
-│ └── wandb_utils.py
-
-└── checkpoints/
-
+├── README.md                # Project documentation
+├── LICENSE                  # License information
+├── requirements.txt         # Python dependencies
+├── conf/                    # Configuration files for Hydra
+│   ├── config.yaml          # Main configuration file
+│   ├── sweep.yaml           # Sweep configuration for W&B
+│   └── model/               # Model-specific configurations
+│       ├── cnn.yaml         # Custom CNN configuration
+│       ├── efficientnet_v2_s.yaml # EfficientNetV2-S configuration
+│       ├── efficientnet_v2_m.yaml # EfficientNetV2-M configuration
+│       ├── efficientnet_v2_l.yaml # EfficientNetV2-L configuration
+│       ├── resnet50.yaml    # ResNet-50 configuration
+│       ├── resnext50_32x4d.yaml # ResNeXt-50 configuration
+│       ├── convnext_base.yaml # ConvNeXt-Base configuration
+│       └── ...              # Other model configurations
+├── data/                    # Dataset directory
+│   ├── train.csv            # Training dataset metadata
+│   ├── test.csv             # Testing dataset metadata
+│   └── merged_dataset/      # Merged dataset for training and validation
+│       └── .gitkeep         # Placeholder for empty directories
+├── src/                     # Source code
+│   ├── dataset.py           # Dataset handling
+│   ├── early_stop.py        # Early stopping implementation
+│   ├── main.py              # Main training script
+│   ├── models/              # Model definitions
+│   │   ├── cnn.py           # Custom CNN model
+│   │   └── model_factory.py # Factory for loading models
+│   └── utils/               # Utility functions
+│       ├── data_utils.py    # Data-related utilities
+│       ├── general_utils.py # General helper functions
+│       └── wandb_utils.py   # Weights & Biases utilities
+└── checkpoints/             # Directory for saving model checkpoints
 ```
 
   
@@ -226,28 +194,16 @@ This pipeline is configured for a custom classification dataset defined by CSV f
 
 **Expected directory layout:**
 
-  
-
 ```
-
 data/
-
-├── train.csv
-
-├── test.csv
-
-└── merged_dataset/
-
-├── Amanita muscaria/
-
-│ ├── image_01.jpg
-
-│ └── ...
-
-└── Boletus edulis/
-
-└── ...
-
+├── train.csv                # Training dataset metadata
+├── test.csv                 # Testing dataset metadata
+└── merged_dataset/          # Merged dataset for training and validation
+    ├── Amanita muscaria/    # Class folder
+    │   ├── image_01.jpg     # Example image
+    │   └── ...              # Other images
+    └── Boletus edulis/      # Another class folder
+        └── ...              # Other images
 ```
 
   
@@ -464,9 +420,6 @@ The pipeline supports a variety of architectures, easily configurable via Hydra.
 ## **📌 To-Do**
 
   
-
-* [ ] Adapt the pipeline for semantic segmentation.
-
 * [ ] Implement automated testing for utility functions.
 
   
