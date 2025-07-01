@@ -277,6 +277,7 @@ def get_last_conv(model: nn.Module) -> nn.Conv2d:
     raise ValueError("No Conv2d layer found -- Grad-CAM needs a conv layer.")
 
 
-def clear_cache() -> None:
+def clear_memory(train_dl, train_ds) -> None:
     torch.cuda.empty_cache()
     torch.cuda.synchronize()
+    del train_dl, train_ds

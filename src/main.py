@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 from models.model_factory import get_model
 import time
 from utils.generalutils import (
-    clear_cache,
+    clear_memory,
     evaluate,
     get_optimizer,
     get_scheduler,
@@ -120,7 +120,7 @@ def main(cfg: DictConfig):
         model = early_stopper.get_best_model(model)
 
         if torch.cuda.is_available():
-            clear_cache()
+            clear_memory(train_dl, train_ds)
 
         val_loss, val_f1, val_acc, y_true, y_pred, attributions = evaluate(
             model, device, test_dl, loss, n_classes, grad_cam=True
