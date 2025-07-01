@@ -10,6 +10,13 @@ import random
 import numpy as np
 import torch.optim as optim
 from captum.attr import LayerGradCam
+from torch.optim.lr_scheduler import (
+    CosineAnnealingWarmRestarts,
+    CosineAnnealingLR,
+    SequentialLR,
+    LinearLR,
+)
+
 
 def set_seed(SEED):
     torch.manual_seed(SEED)
@@ -19,11 +26,13 @@ def set_seed(SEED):
 
     return generator
 
+
 def seed_worker(worker_id, base_seed):
     worker_seed = base_seed + worker_id
     np.random.seed(worker_seed)
     random.seed(worker_seed)
     torch.manual_seed(worker_seed)
+
 
 def train(
     model: nn.Module,
@@ -54,16 +63,20 @@ def train(
     model.train()
 
     for batch_idx, (x, y) in enumerate(train_dl):
-        optimizer.zero_grad()
+        optimizer.zero_grad(set_to_none=True)
         x, y = x.to(device), y.to(device)
 
         device_str = str(device).split(":")[0]
 
-        with autocast(device_type=device_str, dtype=torch.float16):
+        with autocast(device_type=device_str, dtype=torch.bfloat16):
             out = model(x)
             batch_loss = criterion(out, y)
 
         scaler.scale(batch_loss).backward()
+
+        scaler.unscale_(optimizer)
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
         scaler.step(optimizer)
         scaler.update()
 
@@ -73,11 +86,16 @@ def train(
 
     f1_score = f1.compute()
     accuracy = acc.compute()
+
+    f1.reset()
+    acc.reset()
+
     loss = loss / len(train_dl)
 
     print(f"Train - F1-Score : {f1_score:.4f} - Loss : {loss:.4f}")
 
     return loss, f1_score, accuracy
+
 
 def evaluate(
     model: nn.Module,
@@ -149,7 +167,7 @@ def evaluate(
 
             device_str = str(device).split(":")[0]
 
-            with autocast(device_type=device_str, dtype=torch.float16):
+            with autocast(device_type=device_str, dtype=torch.bfloat16):
                 out = model(x)
                 batch_loss = criterion(out, y).item()
 
@@ -158,17 +176,21 @@ def evaluate(
             acc.update(out, y)
 
             y_true.extend(y.cpu().numpy())
-            y_pred.extend(np.argmax(out.cpu().numpy(), axis=1))
+            y_pred.extend(np.argmax(out.float().cpu().numpy(), axis=1))
 
         f1_score = f1.compute()
         accuracy = acc.compute()
+
+        f1.reset()
+        acc.reset()
 
     loss = loss / len(test_dl)
     print(f"Eval - F1-Score : {f1_score:.4f} - Loss : {loss:.4f}")
 
     return loss, f1_score, accuracy, y_true, y_pred, attributions
 
-def get_optimizer(cfg: DictConfig, model: nn.Module):
+
+def get_optimizer(cfg: DictConfig, model: nn.Module) -> optim.AdamW:
     if cfg.architecture not in ["cnn_fc", "cnn_avg"]:
         head_params_list = []
         backbone_params_list = []
@@ -185,7 +207,7 @@ def get_optimizer(cfg: DictConfig, model: nn.Module):
         optimizer = optim.AdamW(
             [
                 {"params": head_params_list, "lr": cfg.lr},
-                {"params": backbone_params_list, "lr": cfg.lr / 10},
+                {"params": backbone_params_list, "lr": cfg.lr / cfg.lr_factor},
             ],
             weight_decay=cfg.weight_decay,
         )
@@ -197,6 +219,28 @@ def get_optimizer(cfg: DictConfig, model: nn.Module):
         )
 
     return optimizer
+
+
+def get_scheduler(cfg: DictConfig, optimizer: optim.AdamW) -> SequentialLR:
+    warmup_scheduler = LinearLR(
+        optimizer, start_factor=0.1, total_iters=cfg.warmup_epochs
+    )
+
+    cosine_scheduler = (
+        CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=2, eta_min=1e-6)
+        if cfg.restarts
+        else CosineAnnealingLR(
+            optimizer=optimizer, T_max=cfg.epochs - cfg.warmup_epochs, eta_min=1e-6
+        )
+    )
+
+    scheduler = SequentialLR(
+        optimizer,
+        schedulers=[warmup_scheduler, cosine_scheduler],
+        milestones=[cfg.warmup_epochs],
+    )
+    return scheduler
+
 
 def unnormalize(img_tensor, mean, std):
     if not isinstance(img_tensor, torch.Tensor):
@@ -224,9 +268,15 @@ def unnormalize(img_tensor, mean, std):
         )
     return img_tensor * std + mean
 
-def get_last_conv(model):
+
+def get_last_conv(model: nn.Module) -> nn.Conv2d:
     for module in reversed(list(model.modules())):
         if isinstance(module, nn.Conv2d):
             return module
 
     raise ValueError("No Conv2d layer found -- Grad-CAM needs a conv layer.")
+
+
+def clear_cache() -> None:
+    torch.cuda.empty_cache()
+    torch.cuda.synchronize()
