@@ -1,3 +1,4 @@
+from collections import Counter
 from typing import Dict, List, Tuple
 import torch
 from torch.utils.data import DataLoader
@@ -8,6 +9,7 @@ from pathlib import Path
 import os
 from .generalutils import seed_worker
 import pandas as pd
+from torch.utils.data import WeightedRandomSampler
 
 
 def download_dataset():
@@ -121,6 +123,22 @@ def make_dataset(
     return train_ds, test_ds, mean, std
 
 
+def get_sampler(train_ds: DS) -> WeightedRandomSampler:
+    class_counts = Counter()
+    for _, target in train_ds:
+        class_counts[target] += 1
+
+    class_weights = {cls_idx: 1.0 / cnt for cls_idx, cnt in class_counts.items()}
+
+    sample_weights = [class_weights[target] for _, target in train_ds]
+
+    weights = torch.tensor(sample_weights, dtype=torch.double)
+    sampler = WeightedRandomSampler(
+        weights=weights, num_samples=len(train_ds), replacement=True
+    )
+    return sampler
+
+
 def make_data_loaders(
     train_ds, test_ds, transforms, batch_size: int, generator: torch.Generator, aug: str
 ) -> Tuple[DataLoader, DataLoader]:
@@ -142,10 +160,12 @@ def make_data_loaders(
 
     worker_init = functools.partial(seed_worker, base_seed=base_seed)
 
+    sampler = get_sampler(train_ds)
+
     train_dl = DataLoader(
         train_ds,
         batch_size=batch_size,
-        shuffle=True,
+        sampler=sampler,
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
