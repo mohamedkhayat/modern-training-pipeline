@@ -1,7 +1,6 @@
 import torch.nn as nn
 from .convBlock import ConvBlock
 import torch.nn.functional as F
-import math
 import torch
 
 
