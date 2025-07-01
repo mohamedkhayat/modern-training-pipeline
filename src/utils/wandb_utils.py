@@ -15,7 +15,7 @@ import matplotlib.cm as cm
 def initwandb(cfg):
     name = get_run_name(cfg)
     run = wandb.init(
-        entity="mohamedkhayat025-none",
+        entity=cfg.wandb_entity,
         project="modern-training-pipeline",
         name=name,
         config=OmegaConf.to_container(cfg, resolve=True),
