@@ -1,243 +1,507 @@
 # **Modern Deep Learning Training Pipeline for Image Classification**
 
-A **flexible and extensible PyTorch-based training pipeline** designed for image classification tasks. This project leverages **Hydra for configuration management**, **Weights & Biases for experiment tracking and hyperparameter sweeps**, and **Albumentations for advanced data augmentation**. It demonstrates training various models (Custom CNN, ResNet50, EfficientNetV2-S/M) on the "A Large Scale Fish Dataset".
+  
+
+A **flexible and extensible PyTorch-based training pipeline** designed for image classification tasks. This project leverages **Hydra for configuration management**, **Weights & Biases for experiment tracking and hyperparameter sweeps**, and **Albumentations for advanced data augmentation**. It demonstrates training a wide range of modern architectures (including EfficientNet, ConvNeXt, ResNeXt, and RegNet) on the ["Mushroom species recognition" Dataset](https://www.kaggle.com/datasets/zlatan599/mushroom1/data) available on Kaggle.
+
+  
 
 ---
+
+  
 
 ## **📜 Table of Contents**
+
 - [Features](#-features)
+
 - [Project Structure](#-project-structure)
+
 - [Installation](#-installation)
+
 - [Dataset Setup](#-dataset-setup)
+
 - [Configuration](#-configuration)
+
 - [Training](#-training)
+
 - [Hyperparameter Sweeps with W&B](#-hyperparameter-sweeps-with-wb)
+
 - [Supported Models](#-supported-models)
+
 - [Key Training Components](#-key-training-components)
+
 - [Results & Checkpoints](#-results--checkpoints)
+
 - [To-Do](#-to-do)
+
 - [License](#-license)
+
 - [Acknowledgments](#-acknowledgments)
 
+  
+
 ---
+
+  
 
 ## **✨ Features**
-✔ **Flexible Model Architecture**  
-✔ **Transfer Learning**  
-✔ **Hydra for Configuration**  
-✔ **Weights & Biases Integration**  
-✔ **Advanced Data Augmentation**  
-✔ **Mixed Precision Training**  
-✔ **Learning Rate Scheduling**  
-✔ **Early Stopping**  
-✔ **Modular Codebase**  
-✔ **Comprehensive Metrics**  
+
+✔ **Flexible Model Architecture**
+
+✔ **Transfer Learning**
+
+✔ **Class Balancing**
+
+✔ **Hydra for Configuration**
+
+✔ **Weights & Bienses Integration**
+
+✔ **Advanced Data Augmentation**
+
+✔ **Mixed Precision Training**
+
+✔ **Gradient Clipping**
+
+✔ **Grad-CAM Support**
+
+✔ **Learning Rate Scheduling**
+
+✔ **Early Stopping**
+
+✔ **Modular Codebase**
+
+✔ **Comprehensive Metrics**
+
 ✔ **Efficient Data Loading**
+
+  
 
 ---
 
+  
+
 ## **📂 Project Structure**
+
+  
 
 ```
 
 modern-training-pipeline/
+
 ├── README.md
+
 ├── LICENSE
+
 ├── requirements.txt
+
 ├── conf/
-│   ├── config.yaml
-│   ├── cnnsweep.yaml
-│   ├── sweep.yaml
-│   └── model/
-│       ├── cnn.yaml
-│       ├── efficientnet\_v2\_m.yaml
-│       ├── efficientnet\_v2\_s.yaml
-│       └── resnet50.yaml
+
+│ ├── config.yaml
+
+│ ├── sweep.yaml
+
+│ └── model/
+
+│ ├── cnn.yaml
+
+│ ├── efficientnet_v2_s.yaml
+
+│ ├── efficientnet_v2_m.yaml
+
+│ ├── efficientnet_v2_l.yaml
+
+│ ├── resnet50.yaml
+
+│ ├── resnext50_32x4d.yaml
+
+│ ├── convnext_base.yaml
+
+│ └── ...
+
 ├── data/
-│   └── NA\_Fish\_Dataset/
-│       └── .gitkeep
+
+│ └── merged_dataset/
+
+│ └── .gitkeep
+
 ├── src/
-│   ├── dataset.py
-│   ├── early\_stop.py
-│   ├── main.py
-│   ├── model.py
-│   ├── model\_factory.py
-│   └── utils.py
+
+│ ├── dataset.py
+
+│ ├── early_stop.py
+
+│ ├── main.py
+
+│ ├── models/
+
+│ │ ├── cnn.py
+
+│ │ └── model_factory.py
+
+│ └── utils/
+
+│ ├── data_utils.py
+
+│ ├── general_utils.py
+
+│ └── wandb_utils.py
+
 └── checkpoints/
 
-````
+```
+
+  
 
 ---
+
+  
 
 ## **⚡ Installation**
 
+  
+
 ### **1️⃣ Clone the Repository**
+
 ```bash
+
 git clone https://github.com/your-username/mohamedkhayat-modern-training-pipeline.git
+
 cd mohamedkhayat-modern-training-pipeline
-````
+
+```
+
+  
 
 ### **2️⃣ Set Up a Conda Environment**
 
+  
+
 ```bash
-conda create --name fishclf python=3.9 -y
-conda activate fishclf
+
+conda create --name modern-pipeline python=3.9 -y
+
+conda activate modern-pipeline
+
 ```
+
+  
 
 ### **3️⃣ Install Dependencies**
 
+  
+
 ```bash
+
 pip install -r requirements.txt
+
 ```
+
+  
 
 > **Note:** Ensure PyTorch with CUDA support is installed if using GPU. Check the [official PyTorch install guide](https://pytorch.org/get-started/locally/).
 
+  
+
 ---
 
-## **🐟 Dataset Setup**
+  
 
-This pipeline uses the "A Large Scale Fish Dataset" from Kaggle.
+## **🍄 Dataset Setup**
 
-1. Download it from [Kaggle](https://www.kaggle.com/datasets/crowww/a-large-scale-fish-dataset).
-2. Extract the archive.
-3. Move class folders (e.g. `Red Mullet`, `Gilt-Head Bream`, etc.) into `data/NA_Fish_Dataset/`.
+  
+
+This pipeline is configured for a custom classification dataset defined by CSV files.
+
+  
+
+1. **Image Directory:** Place all your image files inside the `data/merged_dataset/` directory.
+
+2. **CSV Files:** Provide `train.csv` and `test.csv` in the `data/` directory. These files should contain at least two columns:
+
+* `image_path`: The relative path to an image from the `data/` directory (e.g., `merged_dataset/Amanita muscaria/image_01.jpg`).
+
+* `label`: The string name of the class.
+
+  
 
 **Expected directory layout:**
 
+  
+
 ```
+
 data/
-└── NA_Fish_Dataset/
-    ├── Black Sea Sprat/
-    ├── Gilt-Head Bream/
-    └── ...
+
+├── train.csv
+
+├── test.csv
+
+└── merged_dataset/
+
+├── Amanita muscaria/
+
+│ ├── image_01.jpg
+
+│ └── ...
+
+└── Boletus edulis/
+
+└── ...
+
 ```
+
+  
 
 ---
 
+  
+
 ## **⚙️ Configuration**
+
+  
 
 Managed with **Hydra**.
 
+  
+
 * **Main config:** `conf/config.yaml`
+
 * **Model-specific configs:** `conf/model/*.yaml`
-* **Sweep configs:** `conf/sweep.yaml`, `conf/cnnsweep.yaml`
+
+* **Sweep configs:** `conf/sweep.yaml`
+
+  
+
+> **Note:** Before logging to Weights & Biases, you must set your `wandb_entity` in `conf/config.yaml`.
 
 ### **Example overrides:**
 
 ```bash
-# Use custom CNN with dropout
-python src/main.py model=cnn batch_size=32 model.dropout=0.25
+# Train with ConvNeXt-Base and a different learning rate
+python src/main.py model=convnext_base lr=0.0005
 
-# Change LR and epochs
-python src/main.py lr=0.0005 epochs=30
 ```
 
+  
+
 ---
+
+  
 
 ## **🎯 Training**
 
+  
+
 ### **1️⃣ Default Training**
 
+  
+
 ```bash
+
 python src/main.py
+
 ```
 
-### **2️⃣ Disable W\&B Logging**
+  
+
+### **2️⃣ Disable W&B Logging**
+
+  
 
 ```bash
-python src/main.py logwandb=False
+
+python src/main.py log=False
+
 ```
 
-### **3️⃣ Train with Different Model**
+  
+
+### **3️⃣ Train with a Different Model**
+
+  
 
 ```bash
-python src/main.py model=efficientnet_v2_s
-python src/main.py model=cnn model.hidden_size=1024 model.dropout=0.4
+
+# Train with ResNeXt
+
+python src/main.py model=resnext50_32x4d
+
+  
+
+# Train with EfficientNetV2-L
+
+python src/main.py model=efficientnet_v2_l batch_size=16
+
 ```
+
+  
 
 ---
 
-## **🧪 Hyperparameter Sweeps with W\&B**
+  
 
-### **Install/Upgrade W\&B**
+## **🧪 Hyperparameter Sweeps with W&B**
+
+  
+
+### **Install/Upgrade W&B**
+
+  
 
 ```bash
+
 pip install wandb --upgrade
+
 ```
+
+  
 
 ### **Login**
 
+  
+
 ```bash
+
 wandb login
+
 ```
+
+  
 
 ### **Initialize Sweep**
 
+  
+
 ```bash
-# Pretrained models
+
 wandb sweep conf/sweep.yaml
 
-# Custom CNN
-wandb sweep conf/cnnsweep.yaml
 ```
+
+  
 
 ### **Run Sweep Agent**
 
+  
+
 ```bash
+
 wandb agent <YOUR_SWEEP_ID>
+
 ```
 
+  
+
 ---
+
+  
 
 ## **🤖 Supported Models**
 
-| Model               | Description                                               |
-| ------------------- | --------------------------------------------------------- |
-| `cnn`               | Custom CNN with configurable layers, dropout              |
-| `resnet50`          | Torchvision pretrained model with optional layer freezing |
-| `efficientnet_v2_s` | Pretrained EfficientNetV2-S                               |
-| `efficientnet_v2_m` | Pretrained EfficientNetV2-M                               |
+  
 
-**Freezing layers:** controlled via `startpoint` in config (everything before it is frozen).
+The pipeline supports a variety of architectures, easily configurable via Hydra.
+
+  
+
+| Model Family | Config Name(s) | Description |
+
+| ----------------- | --------------------------------------------------------- | --------------------------------------------------------------------------- |
+
+| **Custom CNN** | `cnn` | A custom-built CNN with configurable layers, hidden size, and dropout. |
+
+| **ResNet** | `resnet50` | Classic ResNet-50 architecture from Torchvision. |
+
+| **ResNeXt** | `resnext50_32x4d`, `resnext101_32x8d` | Next-generation ResNet with grouped convolutions. |
+
+| **EfficientNet** | `efficientnet_v2_s`, `efficientnet_v2_m`, `efficientnet_v2_l` | A family of models balancing accuracy and computational cost. |
+
+| **ConvNeXt** | `convnext_small`, `convnext_base`, `convnext_large` | Modernized Inception-style architecture. |
+
+| **RegNet** | `regnet_y_8gf`, `regnet_y_16gf` | Models discovered through Neural Architecture Search (NAS). |
+
+  
+
+**Freezing layers:** controlled via `startpoint` in the model's config file. Layers before the specified `startpoint` are frozen during training.
+
+  
 
 ---
+
+  
 
 ## **🧩 Key Training Components**
 
+  
+
 * **Optimizer:** `AdamW`
+
 * **Loss Function:** `CrossEntropyLoss`
-* **Scheduler:** `LinearLR` warmup + `CosineAnnealingWarmRestarts`
+
+* **Scheduler:** `LinearLR` warmup + `CosineAnnealingLR`
+
+* **Class Balancing:** Uses `WeightedRandomSampler` to address imbalanced datasets.
 * **Metrics:** `Weighted F1-score` via `TorchMetrics`
 * **Early Stopping:** monitors validation F1, saves best model
-* **Transforms:**
+* **Debugging & Visualization:** Integrated Grad-CAM for model explainability.
+* **Transforms:** 
 
-  * **Train:** `RandomResizedCrop`, `Flip`, `RGBShift`, `CoarseDropout`, `Blur`, `Normalize`
-  * **Val/Test:** `Resize`, `CenterCrop`, `Normalize`
+	* **Train:** `RandomResizedCrop`, `Flip`, `RGBShift`, `CoarseDropout`, `Blur`, `Normalize`
+
+	* **Val/Test:** `Resize`, `CenterCrop`, `Normalize`
+
+  
 
 ---
+
+  
 
 ## **📊 Results & Checkpoints**
 
+  
+
 * **Console Logs:** Epoch-wise loss, F1-score, LR.
-* **W\&B Dashboard:** Full logs, metrics, system stats.
+
+* **W&B Dashboard:** Full logs, metrics, system stats, and Grad-CAM visualizations.
+
 * **Saved Models:** In `checkpoints/` with run name and `_best.pth` suffix.
 
+  
+
 ---
+
+  
 
 ## **📌 To-Do**
 
-* [ ] Change the dataset or make it a semantic segmentation task
+  
+
+* [ ] Adapt the pipeline for semantic segmentation.
+
+* [ ] Implement automated testing for utility functions.
+
+  
 
 ---
+
+  
 
 ## **📄 License**
 
+  
+
 MIT License — see the `LICENSE` file for details.
+
+  
 
 ---
 
+  
+
 ## **🙌 Acknowledgments**
 
-* **Dataset:** ["A Large Scale Fish Dataset"](https://www.kaggle.com/datasets/crowww/a-large-scale-fish-dataset)
-* **Libraries:** PyTorch, Hydra, Weights & Biases, Albumentations, TorchMetrics
-* **Inspiration:** Modern deep learning pipelines and best practices
+  
+
+* **Libraries:** PyTorch, Hydra, Weights & Biases, Albumentations, TorchMetrics.
+
+* **Inspiration:** Modern deep learning pipelines and best practices from the community.
