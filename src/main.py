@@ -1,5 +1,5 @@
-import torch
 import pathlib
+import os
 from early_stop import EarlyStopping
 from torch.amp import GradScaler
 import hydra
@@ -8,15 +8,13 @@ from models.model_factory import get_model
 import time
 from utils.train_utils import evaluate, train
 from utils.generalutils import (
+    get_device,
     get_loss,
     get_optimizer,
     get_scheduler,
     set_seed,
 )
-from utils.data_utils import (
-    make_data_loaders,
-    make_dataset,
-)
+from utils.data_utils import make_data_loaders, make_dataset, get_class_weights
 from utils.wandb_utils import (
     get_run_and_or_name,
     log_final_report,
@@ -28,8 +26,10 @@ from utils.wandb_utils import (
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
     run, name = get_run_and_or_name(cfg)
-    device = torch.get_device(cfg)
+    device = get_device(cfg)
     generator = set_seed(cfg.seed)
 
     root_dir = pathlib.Path("data", rf"{cfg.root_dir}")
@@ -56,7 +56,7 @@ def main(cfg: DictConfig):
 
     scheduler = get_scheduler(cfg, optimizer)
 
-    loss = get_loss(cfg, train_ds)
+    loss = get_loss(cfg, train_ds, device, get_class_weights)
 
     scaler = GradScaler()
 

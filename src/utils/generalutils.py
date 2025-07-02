@@ -13,7 +13,6 @@ from torch.optim.lr_scheduler import (
     LinearLR,
 )
 from dataset import DS
-from utils.data_utils import get_class_weights
 
 
 def set_seed(SEED: int) -> torch.Generator:
@@ -73,7 +72,7 @@ def get_optimizer(cfg: DictConfig, model: nn.Module) -> Optimizer:
     return optimizer
 
 
-def get_loss(cfg, train_ds: DS, device: torch.device) -> nn.Module:
+def get_loss(cfg, train_ds: DS, device: torch.device, get_class_weights) -> nn.Module:
     class_weights_tensor = None
 
     if not cfg.do_sample:
