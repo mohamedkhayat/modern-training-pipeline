@@ -22,3 +22,4 @@ delta : 0.001
 n_workers : 4
 wandb_entity : mohamedkhayat025-none
 do_sample : False
+device : cuda
