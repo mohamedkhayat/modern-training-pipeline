@@ -1,5 +1,5 @@
 from typing import Tuple
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 import torch
 import torch.nn as nn
 from datetime import datetime
@@ -53,6 +53,19 @@ def get_run_name(cfg) -> str:
         + f"_model={cfg.model.name}_lr={cfg.lr}"
     )
     return name
+
+
+def get_run_and_or_name(cfg: DictConfig):
+    run = None
+
+    if cfg.log:
+        run = initwandb(cfg)
+        name = run.name
+
+    else:
+        name = get_run_name(cfg)
+
+    return run, name
 
 
 def log_transforms(run, batch, n_images, classes, aug, mean, std) -> None:
