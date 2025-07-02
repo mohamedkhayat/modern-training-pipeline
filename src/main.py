@@ -1,5 +1,4 @@
 import torch
-import torch.nn as nn
 import pathlib
 from early_stop import EarlyStopping
 from torch.amp import GradScaler
@@ -10,6 +9,7 @@ import time
 from utils.generalutils import (
     clear_memory,
     evaluate,
+    get_loss,
     get_optimizer,
     get_scheduler,
     set_seed,
@@ -54,9 +54,7 @@ def main(cfg: DictConfig):
         cfg.download_data,
     )
 
-    n_classes = len(train_ds.classes)
-
-    model, transforms, mean, std = get_model(cfg, device, mean, std, n_classes)
+    model, transforms, mean, std = get_model(cfg, device, mean, std, train_ds.n_classes)
 
     log_model_params(run, model)
 
@@ -72,7 +70,8 @@ def main(cfg: DictConfig):
 
     scheduler = get_scheduler(cfg, optimizer)
 
-    loss = nn.CrossEntropyLoss()
+    loss = get_loss(cfg, train_ds)
+
     scaler = GradScaler()
 
     early_stopper = EarlyStopping(
@@ -87,10 +86,11 @@ def main(cfg: DictConfig):
         print(f"Epoch : {epoch + 1} Learning rate : {scheduler.get_last_lr()[0]:.5f}")
 
         train_loss, train_f1, train_acc = train(
-            model, device, train_dl, loss, n_classes, optimizer, scaler
+            model, device, train_dl, loss, train_ds.n_classes, optimizer, scaler
         )
+
         val_loss, val_f1, val_acc, *_ = evaluate(
-            model, device, test_dl, loss, n_classes
+            model, device, test_dl, loss, train_ds.n_classes
         )
 
         best_val_f1 = max(val_f1, best_val_f1)
@@ -123,7 +123,7 @@ def main(cfg: DictConfig):
             clear_memory(train_dl, train_ds)
 
         val_loss, val_f1, val_acc, y_true, y_pred, attributions = evaluate(
-            model, device, test_dl, loss, n_classes, grad_cam=True
+            model, device, test_dl, loss, train_ds.n_classes, grad_cam=True
         )
 
         log_gradcam_to_wandb_streamlined(
