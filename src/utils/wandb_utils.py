@@ -9,7 +9,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import time
 from torchvision.utils import make_grid
-from .generalutils import unnormalize
+
+from utils.train_utils import evaluate
+from .generalutils import clear_memory, unnormalize
 import matplotlib.cm as cm
 import wandb.sdk.wandb_run as Run
 from torch.optim.lr_scheduler import SequentialLR
@@ -257,3 +259,37 @@ def log_metrics(
             "Learning rate": float(f"{scheduler.get_last_lr()[0]:.6f}"),
         }
     )
+
+
+def log_final_report(
+    run,
+    best_val_f1,
+    best_val_acc,
+    early_stopper,
+    train_dl,
+    train_ds,
+    model,
+    device,
+    test_dl,
+    loss,
+    mean,
+    std,
+    start_time,
+):
+    run.log({"best val f1": best_val_f1})
+    run.log({"best val acc": best_val_acc})
+
+    model = early_stopper.get_best_model(model)
+
+    if torch.cuda.is_available():
+        clear_memory(train_dl, train_ds)
+
+    _, _, _, y_true, y_pred, attributions = evaluate(
+        model, device, test_dl, loss, train_ds.n_classes, grad_cam=True
+    )
+
+    log_gradcam_to_wandb_streamlined(run, next(iter(test_dl)), attributions, mean, std)
+    log_training_time(run, start_time)
+    log_confusion_matrix(run, y_true, y_pred, train_ds.classes)
+
+    run.finish()

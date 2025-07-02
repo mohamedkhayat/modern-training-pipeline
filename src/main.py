@@ -8,7 +8,6 @@ from models.model_factory import get_model
 import time
 from utils.train_utils import evaluate, train
 from utils.generalutils import (
-    clear_memory,
     get_loss,
     get_optimizer,
     get_scheduler,
@@ -21,11 +20,9 @@ from utils.data_utils import (
 from utils.wandb_utils import (
     initwandb,
     get_run_name,
-    log_confusion_matrix,
-    log_gradcam_to_wandb_streamlined,
+    log_final_report,
     log_metrics,
     log_model_params,
-    log_training_time,
     log_transforms,
 )
 
@@ -113,25 +110,21 @@ def main(cfg: DictConfig):
             break
 
     if cfg.log:
-        run.log({"best val f1": best_val_f1})
-        run.log({"best val acc": best_val_acc})
-
-        model = early_stopper.get_best_model(model)
-
-        if torch.cuda.is_available():
-            clear_memory(train_dl, train_ds)
-
-        val_loss, val_f1, val_acc, y_true, y_pred, attributions = evaluate(
-            model, device, test_dl, loss, train_ds.n_classes, grad_cam=True
+        log_final_report(
+            run,
+            best_val_f1,
+            best_val_acc,
+            early_stopper,
+            train_dl,
+            train_ds,
+            model,
+            device,
+            test_dl,
+            loss,
+            mean,
+            std,
+            start_time,
         )
-
-        log_gradcam_to_wandb_streamlined(
-            run, next(iter(test_dl)), attributions, mean, std
-        )
-        log_training_time(run, start_time)
-        log_confusion_matrix(run, y_true, y_pred, train_ds.classes)
-
-        run.finish()
 
 
 if __name__ == "__main__":
