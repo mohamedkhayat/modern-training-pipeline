@@ -28,6 +28,7 @@ from torchvision.models import (
     regnet_y_16gf,
     RegNet_Y_16GF_Weights,
 )
+from torchvision.transforms import InterpolationMode
 
 os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
@@ -69,17 +70,17 @@ def get_transforms(weights, mean=None, std=None):
         resize_sz = tv_preset.resize_size[0]
         mean = tv_preset.mean
         std = tv_preset.std
-        interp = cv2.INTER_LINEAR
+        interpolation_mode = tv_preset.interpolation
 
-        for transform in tv_preset.transforms:
-            if hasattr(transform, "interpolation"):
-                if transform.interpolation == 2:
-                    interp = cv2.INTER_LINEAR
-                elif transform.interpolation == 3:
-                    interp = cv2.INTER_CUBIC
-                elif transform.interpolation == 1:
-                    interp = cv2.INTER_NEAREST
-                break
+        if interpolation_mode == InterpolationMode.BILINEAR:
+            interp = cv2.INTER_LINEAR
+        elif interpolation_mode == InterpolationMode.BICUBIC:
+            interp = cv2.INTER_CUBIC
+        elif interpolation_mode == InterpolationMode.NEAREST:
+            interp = cv2.INTER_NEAREST
+        else:
+            interp = cv2.INTER_LINEAR
+
     else:
         crop_sz = 224
         resize_sz = 256
