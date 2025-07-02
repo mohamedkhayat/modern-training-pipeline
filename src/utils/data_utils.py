@@ -125,23 +125,26 @@ def make_dataset(
 
 
 def get_class_weights(train_ds: DS) -> Dict[int, float]:
+    print("... calculating class weights ...")
     class_counts = Counter()
-    for _, target in train_ds:
+    for _, target in train_ds.samples:
         class_counts[target] += 1
 
     class_weights = {cls_idx: 1.0 / cnt for cls_idx, cnt in class_counts.items()}
-
+    print("... done calculating...")
     return class_weights
 
 
 def get_sampler(train_ds: DS) -> WeightedRandomSampler:
+    print("... making sampler ...")
     class_weights = get_class_weights(train_ds)
-    sample_weights = [class_weights[target] for _, target in train_ds]
+    sample_weights = [class_weights[target] for _, target in train_ds.samples]
 
     weights = torch.tensor(sample_weights, dtype=torch.double)
     sampler = WeightedRandomSampler(
         weights=weights, num_samples=len(train_ds), replacement=True
     )
+    print("... done making sampler...")
     return sampler
 
 
