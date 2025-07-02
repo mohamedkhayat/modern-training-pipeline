@@ -6,14 +6,13 @@ import hydra
 from omegaconf import DictConfig
 from models.model_factory import get_model
 import time
+from utils.train_utils import evaluate, train
 from utils.generalutils import (
     clear_memory,
-    evaluate,
     get_loss,
     get_optimizer,
     get_scheduler,
     set_seed,
-    train,
 )
 from utils.data_utils import (
     make_data_loaders,
