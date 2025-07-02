@@ -9,7 +9,7 @@ import pickle
 
 class DS(Dataset):
     """
-    A dataset class for loading fish images and their labels.
+    A dataset class for loading images and their labels.
     """
 
     def __init__(self, samples, classes, class_to_idx):
@@ -27,6 +27,7 @@ class DS(Dataset):
         self.idx_to_class = {v: k for k, v in self.class_to_idx.items()}
         self.samples = samples
         self.transforms = None
+        self.n_classes = len(classes)
 
     def __len__(self):
         return len(self.samples)
