@@ -144,7 +144,7 @@ def get_sampler(train_ds: DS) -> WeightedRandomSampler:
     sampler = WeightedRandomSampler(
         weights=weights, num_samples=len(train_ds), replacement=True
     )
-    print("... done making sampler...")
+    print("... done making sampler ...")
     return sampler
 
 
