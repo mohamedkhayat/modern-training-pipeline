@@ -176,11 +176,14 @@ def make_data_loaders(
 
     worker_init = functools.partial(seed_worker, base_seed=base_seed)
 
-    sampler = get_sampler(train_ds)
+    sampler = None
+    if cfg.do_sample:
+        sampler = get_sampler(train_ds)
 
     train_dl = DataLoader(
         train_ds,
         batch_size=cfg.batch_size,
+        shuffle=not cfg.do_sample,
         sampler=sampler,
         num_workers=cfg.n_workers,
         pin_memory=True,
