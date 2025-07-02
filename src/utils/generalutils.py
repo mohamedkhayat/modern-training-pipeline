@@ -16,7 +16,7 @@ from dataset import DS
 from utils.data_utils import get_class_weights
 
 
-def set_seed(SEED):
+def set_seed(SEED: int) -> torch.Generator:
     torch.manual_seed(SEED)
     random.seed(SEED)
     np.random.seed(SEED)
@@ -25,11 +25,21 @@ def set_seed(SEED):
     return generator
 
 
-def seed_worker(worker_id, base_seed):
+def seed_worker(worker_id: int, base_seed: int) -> None:
     worker_seed = base_seed + worker_id
     np.random.seed(worker_seed)
     random.seed(worker_seed)
     torch.manual_seed(worker_seed)
+
+
+def get_device(cfg: DictConfig) -> torch.device:
+    if cfg.device:
+        device = torch.device(cfg.device)
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    print(f"using : {device}")
+    return device
 
 
 def get_optimizer(cfg: DictConfig, model: nn.Module) -> Optimizer:
