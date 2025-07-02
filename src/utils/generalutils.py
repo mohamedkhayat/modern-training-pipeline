@@ -224,17 +224,19 @@ def get_optimizer(cfg: DictConfig, model: nn.Module) -> Optimizer:
     return optimizer
 
 
-def get_loss(cfg, train_ds: DS, device):
+def get_loss(cfg, train_ds: DS, device: torch.device) -> nn.Module:
     class_weights_tensor = None
-    if not cfg.do_sample:
-        n_classes = len(train_ds.classes)
-        class_weights = get_class_weights(train_ds)
-        class_weights_tensor = torch.zeros(n_classes)
 
-        for i in range(n_classes):
+    if not cfg.do_sample:
+        class_weights = get_class_weights(train_ds)
+        class_weights_tensor = torch.zeros(train_ds.n_classes)
+
+        for i in range(train_ds.n_classes):
             class_weights_tensor[i] = class_weights.get(i, 1.0)
 
-    loss = nn.CrossEntropyLoss(weight=class_weights_tensor.to(device))
+        class_weights_tensor = class_weights_tensor.to(device)
+
+    loss = nn.CrossEntropyLoss(weight=class_weights_tensor)
 
     return loss
 
