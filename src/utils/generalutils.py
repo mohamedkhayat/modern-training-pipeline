@@ -18,6 +18,7 @@ from torch.optim.lr_scheduler import (
 )
 
 from dataset import DS
+from utils.data_utils import get_class_weights
 
 
 def set_seed(SEED):
@@ -221,6 +222,21 @@ def get_optimizer(cfg: DictConfig, model: nn.Module) -> Optimizer:
         )
 
     return optimizer
+
+
+def get_loss(cfg, train_ds: DS, device):
+    class_weights_tensor = None
+    if not cfg.do_sample:
+        n_classes = len(train_ds.classes)
+        class_weights = get_class_weights(train_ds)
+        class_weights_tensor = torch.zeros(n_classes)
+
+        for i in range(n_classes):
+            class_weights_tensor[i] = class_weights.get(i, 1.0)
+
+    loss = nn.CrossEntropyLoss(weight=class_weights_tensor.to(device))
+
+    return loss
 
 
 def get_scheduler(cfg: DictConfig, optimizer: Optimizer) -> SequentialLR:
