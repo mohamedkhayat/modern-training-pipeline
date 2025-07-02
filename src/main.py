@@ -18,8 +18,7 @@ from utils.data_utils import (
     make_dataset,
 )
 from utils.wandb_utils import (
-    initwandb,
-    get_run_name,
+    get_run_and_or_name,
     log_final_report,
     log_metrics,
     log_model_params,
@@ -29,15 +28,8 @@ from utils.wandb_utils import (
 
 @hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main(cfg: DictConfig):
-    if cfg.log:
-        run = initwandb(cfg)
-        name = run.name
-    else:
-        name = get_run_name(cfg)
-
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"using : {device}")
-
+    run, name = get_run_and_or_name(cfg)
+    device = torch.get_device(cfg)
     generator = set_seed(cfg.seed)
 
     root_dir = pathlib.Path("data", rf"{cfg.root_dir}")
