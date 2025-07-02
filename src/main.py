@@ -52,8 +52,6 @@ def main(cfg: DictConfig):
         run, next(iter(train_dl)), cfg.n_images, train_ds.classes, cfg.aug, mean, std
     )
 
-    # TODO: add cross validation
-
     optimizer = get_optimizer(cfg, model)
 
     scheduler = get_scheduler(cfg, optimizer)
@@ -66,8 +64,7 @@ def main(cfg: DictConfig):
         patience=cfg.patience, delta=cfg.delta, path="checkpoints/", name=name
     )
 
-    best_val_f1 = 0.0
-    best_val_acc = 0.0
+    best_val_f1, best_val_acc = 0.0, 0.0
 
     start_time = time.time()
     for epoch in range(cfg.epochs):

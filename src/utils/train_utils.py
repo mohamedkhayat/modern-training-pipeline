@@ -61,8 +61,7 @@ def train(
         acc.update(out, y)
         loss += batch_loss.item()
 
-    f1_score = f1.compute()
-    accuracy = acc.compute()
+    f1_score, accuracy = f1.compute(), acc.compute()
 
     f1.reset()
     acc.reset()
@@ -93,8 +92,7 @@ def evaluate(
 
     """
 
-    y_true = []
-    y_pred = []
+    y_true, y_pred = [], []
 
     loss = 0.0
     f1 = F1Score("multiclass", num_classes=num_classes, average="weighted").to(device)
@@ -155,8 +153,7 @@ def evaluate(
             y_true.extend(y.cpu().numpy())
             y_pred.extend(np.argmax(out.float().cpu().numpy(), axis=1))
 
-        f1_score = f1.compute()
-        accuracy = acc.compute()
+        f1_score, accuracy = f1.compute(), acc.compute()
 
         f1.reset()
         acc.reset()
