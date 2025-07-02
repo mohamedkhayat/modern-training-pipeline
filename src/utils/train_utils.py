@@ -104,8 +104,13 @@ def evaluate(
 
     if grad_cam:
         try:
+            # Clear any existing gradients and free memory
+            torch.cuda.empty_cache()
+
+            # Get only one sample for Grad-CAM to save memory
             imgs, _ = next(iter(test_dl))
-            input_tensor = imgs.to(device)
+
+            input_tensor = imgs[:6].to(device)
 
             target_layer = get_last_conv(model)
             print(f"Grad-CAM target layer: {target_layer}")
@@ -116,24 +121,32 @@ def evaluate(
             guided_gc = LayerGradCam(model, target_layer)
 
             outputs = model(input_tensor)
-
             targets = outputs.argmax(dim=1)
+
             attributions = guided_gc.attribute(
                 input_tensor,
                 target=targets,
                 relu_attributions=True,
             )
+
             attributions = torch.nn.functional.interpolate(
                 attributions,
                 size=imgs.shape[2:],  # Target (H, W) of original image
                 mode="bilinear",
                 align_corners=False,
-            ).detach()  # Detach after interpolation
+            ).detach()
 
+            # Clean up immediately
+            del guided_gc, input_tensor, outputs, targets
+            torch.cuda.empty_cache()
             torch.set_grad_enabled(False)
 
         except Exception as e:
             print(f"Error computing attributions : {e}")
+            # Ensure we clean up even on error
+            torch.cuda.empty_cache()
+            torch.set_grad_enabled(False)
+            attributions = None
 
     model.eval()
     with torch.no_grad():
