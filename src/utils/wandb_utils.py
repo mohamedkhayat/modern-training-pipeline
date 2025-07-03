@@ -9,11 +9,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import time
 from torchvision.utils import make_grid
+from early_stop import EarlyStopping
 from utils.train_utils import evaluate
 from .generalutils import clear_memory, unnormalize
 import matplotlib.cm as cm
 import wandb.sdk.wandb_run as Run
 from torch.optim.lr_scheduler import SequentialLR
+from torch.utils.data import DataLoader
+from dataset import DS
 
 
 def initwandb(cfg) -> Run:
@@ -275,19 +278,19 @@ def log_metrics(
 
 def log_final_report(
     run,
-    best_val_f1,
-    best_val_acc,
-    early_stopper,
-    train_dl,
-    train_ds,
-    model,
-    device,
-    test_dl,
-    loss,
-    mean,
-    std,
-    start_time,
-):
+    best_val_f1: float,
+    best_val_acc: float,
+    early_stopper: EarlyStopping,
+    train_dl: DataLoader,
+    train_ds: DS,
+    model: nn.Module,
+    device: torch.device,
+    test_dl: DataLoader,
+    loss: float,
+    mean: torch.Tensor,
+    std: torch.Tensor,
+    start_time: float,
+) -> None:
     run.log({"best val f1": best_val_f1})
     run.log({"best val acc": best_val_acc})
 
@@ -300,7 +303,9 @@ def log_final_report(
         model, device, test_dl, loss, train_ds.n_classes, grad_cam=True
     )
 
-    log_gradcam_to_wandb_streamlined(run, next(iter(test_dl)), attributions, mean, std)
+    log_gradcam_to_wandb_streamlined(
+        run, next(iter(test_dl)), attributions, mean, std, overlay_alpha=0.5
+    )
     log_training_time(run, start_time)
     log_confusion_matrix(run, y_true, y_pred, train_ds.classes)
 
