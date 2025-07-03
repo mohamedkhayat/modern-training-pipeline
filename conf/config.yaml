@@ -17,7 +17,7 @@ n_images : 6
 download_data : False
 lr_factor: 10
 restarts : False
-patience: 10
+patience: 7
 delta : 0.001
 n_workers : 4
 wandb_entity : mohamedkhayat025-none
