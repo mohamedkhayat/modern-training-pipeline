@@ -22,7 +22,7 @@ class TestModelFactoryIntegration:
     """Integration tests for model factory with real data flow."""
 
     MODEL_STARTPOINTS = {
-        "regnet": "trunk_output.block3",
+        "regnet_y_16gf": "trunk_output.block3",
         "resnet50": "layer4",
         "resnext50_32x4d": "layer3",
         "resnext101_32x8d": "layer3",
@@ -30,7 +30,7 @@ class TestModelFactoryIntegration:
         "convnext_base": "features.2",
         "convnext_large": "features.2",
         "convnext_small": "features.6",
-        "efficientnet_v2_l": "features.8.2",
+        "efficientnet_v2_l": "features.7.6",
         "efficientnet_v2_m": "features.7.2",
         "efficientnet_v2_s": "features.6.14",
         "cnn_avg": None,
