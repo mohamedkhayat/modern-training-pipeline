@@ -6,13 +6,13 @@ from omegaconf import DictConfig
 import random
 import numpy as np
 import torch.optim as optim
+from dataset import DS
 from torch.optim.lr_scheduler import (
     CosineAnnealingWarmRestarts,
     CosineAnnealingLR,
     SequentialLR,
     LinearLR,
 )
-from dataset import DS
 
 
 def set_seed(SEED: int) -> torch.Generator:
