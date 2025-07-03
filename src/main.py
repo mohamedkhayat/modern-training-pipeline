@@ -44,13 +44,24 @@ def main(cfg: DictConfig):
 
     model, transforms, mean, std = get_model(cfg, device, mean, std, train_ds.n_classes)
 
-    log_model_params(run, model)
+    for name, _ in model.named_parameters():
+        print(name)
+
+    if cfg.log:
+        log_model_params(run, model)
 
     train_dl, test_dl = make_data_loaders(train_ds, test_ds, transforms, generator, cfg)
 
-    log_transforms(
-        run, next(iter(train_dl)), cfg.n_images, train_ds.classes, cfg.aug, mean, std
-    )
+    if cfg.log:
+        log_transforms(
+            run,
+            next(iter(train_dl)),
+            cfg.n_images,
+            train_ds.classes,
+            cfg.aug,
+            mean,
+            std,
+        )
 
     optimizer = get_optimizer(cfg, model)
 
