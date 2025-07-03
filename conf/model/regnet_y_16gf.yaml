@@ -1,0 +1,4 @@
+name : regnet_y_16gf
+dropout : 0.3
+startpoint : trunk_output.block4
+input_size : 384
