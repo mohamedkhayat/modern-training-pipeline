@@ -45,7 +45,7 @@ SUPPORTED_MODELS = [
     "resnext50_32x4d",
     "resnext101_32x8d",
     "resnext101_64x4d",
-    "regnet",
+    "regnet_y_16gf",
 ]
 
 
@@ -98,18 +98,18 @@ def get_transforms(weights, mean=None, std=None):
                 A.Rotate(limit=15, p=0.5),
                 A.RGBShift(r_shift_limit=15, g_shift_limit=15, b_shift_limit=15, p=0.5),
                 A.CoarseDropout(
-                    num_holes_range=(1, 3),
-                    hole_height_range=(0.05, 0.2),
-                    hole_width_range=(0.05, 0.2),
+                    num_holes_range=(1, 4),
+                    hole_height_range=(0.05, 0.15),
+                    hole_width_range=(0.05, 0.15),
                     fill=0,
                     p=0.6,
                 ),
                 A.GaussianBlur(
                     sigma_limit=(0.2, 0.5),
                     blur_limit=0,
-                    p=0.8,
+                    p=0.7,
                 ),
-                A.ToGray(method="weighted_average", p=0.1),
+                A.ToGray(num_output_channels=3, method="weighted_average", p=0.2),
                 A.Normalize(mean=mean, std=std, max_pixel_value=255.0),
                 A.ToTensorV2(),
             ],
