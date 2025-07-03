@@ -33,9 +33,9 @@ def download_dataset():
 
 
 def get_data_samples(
-    root_dir: str,
+    dir: str,
 ) -> Tuple[List[Tuple[str, int]], List[str], Dict[str, int]]:
-    root_dir = Path(root_dir)
+    root_dir: Path = Path(dir)
     classes = sorted([d.name for d in root_dir.iterdir() if d.is_dir()])
     class_to_idx = {cls_name: idx for idx, cls_name in enumerate(classes)}
     samples = []
@@ -49,10 +49,10 @@ def get_data_samples(
     return samples, classes, class_to_idx
 
 
-def get_mushroom_data_samples(
-    root_dir: str,
-) -> Tuple[List[Tuple[str, int]], List[Tuple[str, int]], List[str], Dict[str, int]]:
-    root_dir = Path("data")
+def get_mushroom_data_samples() -> Tuple[
+    List[Tuple[str, int]], List[Tuple[str, int]], List[str], Dict[str, int]
+]:
+    root_dir: Path = Path("data")
 
     train_df = pd.read_csv(root_dir / "train.csv")
     print(train_df.label.value_counts())
@@ -100,9 +100,7 @@ def make_dataset(
 
     print("... making dataset ...")
     if root_dir == "merged_dataset":
-        (train_set, test_set), classes, class_to_idx = get_mushroom_data_samples(
-            root_dir
-        )
+        train_set, test_set, classes, class_to_idx = get_mushroom_data_samples()
     else:
         data_samples, classes, class_to_idx = get_data_samples(root_dir)
         train_set, test_set = train_test_split(
@@ -126,7 +124,7 @@ def make_dataset(
 
 def get_class_weights(train_ds: DS) -> Dict[int, float]:
     print("... calculating class weights ...")
-    class_counts = Counter()
+    class_counts: Counter = Counter()
     for _, target in train_ds.samples:
         class_counts[target] += 1
 
